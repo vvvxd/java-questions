@@ -291,57 +291,6 @@ LinkedCollection<E>.Node -> LinkedCollection.Node
 Эта таблица показывает, во что превращаются разные типы в процессе затирания, Type Erasure.
 
 --------------------------------------------------------------------------------------------------------------------
-Есть два примера программы:
-1)
-public class Name implements Comparable<Name> {
-private final String value;
-public Name(String value) {
-this.value = value;
-}
-@Override
-public String toString() {
-return "value='" + value +
-}
-@Override
-public int compareTo(Name o) {
-return value.compareTo(o.value);
-}
-public int compareTo(Object o) {
-return value.compareTo(((Name)o).value);
-}
-
-2)
-public class Name implements Comparable {
-private final String value;
-public Name(String value) {
-this.value = value;
-}
-@Override
-public String toString() {
-return "value='" + value + '\'
-}
-public int compareTo(Name o) {
-return value.compareTo(o.value);
-}
-@Override
-public int compareTo(Object o) {
-return value.compareTo(((Name)o).value);
-}
-
-Разница между ними в том, что слева происходит compile-time error, а справа все компилируется без ошибок. Почему?
-
-В Java два разных метода не могут иметь одну и ту же сигнатуру. В процессе Type Erasure компилятор добавит bridge-метод public int compareTo(Object o). Но в классе уже содержится метод с такой сигнатурой, что и вызовет ошибку во время компиляции.
-Скомпилируем класс Name, удалив метод compareTo(Object o), и посмотрим на получившийся байткод с помощью javap:
-
-# javap Name.class Compiled from "Name.java" public class Name implements java.lang.Comparable<Name> {
-public Name(java.lang.String);
-public java.lang.String toString();
-public int compareTo(ru.sberbank.training.generics.Name); public int compareTo(java.lang.Object);
-}
-
-Видим, что класс содержит метод int compareTo(java.lang.Object) , хотя мы его удалили из исходного кода. Это и есть bridge метод, который добавил компилятор.
-
---------------------------------------------------------------------------------------------------------------------
 Reifiable типы
 
 В Java мы говорим, что тип является reifiable, если информация о нем полностью доступна во время выполнения программы. В reifiable типы входят:
@@ -503,20 +452,5 @@ List<Integer> list = new ArrayList<>();
 Объединение (incorporation)
 Разрешение (resolution)
 Эти процессы тесно взаимодействуют: приведение может запустить объединение, объединение может привести к дальнейшему приведению, а разрешение — к дальнейшему объединению.Детальное описание механизма выведения типа доступно в спецификации языка, где ему посвящена целая глава.
-
---------------------------------------------------------------------------------------------------------------------
-Типы генериков.
-
-Существует 2 типа дженериков:
-Параметризированый тип. Представляет из себя возможность указать неопределенный тип, или несколько(в классе или методе), дать ему имя котрое в дальнейшем можно использоваться в рамках класса, или метода, как эквивалентное оригинальному типу. Может быть использован с ключевым словом extends, ограничен этим классом и его наследниками. Так же можно использовать & или/и | указать несколько классов и/или интерфейсов. Поддерживает рекурсивное расширение типов
-public static class NumberContainer<T extends Number & Comparable> {
-
-Wildcard. Используется в сигнатуре методов. Для параметризации класса - не возможно. Может быть использован в сочитании ключевыми словами extends и/или super. Делятся на три типа:
-Upper Bounded Wildcards - <? extends Number>
-Unbounded Wildcards - <?>
-Lower Bounded Wildcards - <? super Integer> Для выбора типа используют принцип PECS (Producer Extends Consumer Super)
-extends - когда надо только получать данные из объекта. Метод передает данные в аргумент.
-super - когда надо надо только вставлять данные в объект. Метод читает данные из аргумента
-не использовать wildcard когда надо и получать и вставлять данные в структуру Использование generic wildcards для повышения удобства Java API Рекурсивные дженерики?????
 
 --------------------------------------------------------------------------------------------------------------------
