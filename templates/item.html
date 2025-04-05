@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        ${questions}
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

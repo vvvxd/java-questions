@@ -126,5 +126,3 @@ void printString(String testString);
 Multiple non-overriding abstract methods found in interface com.reflectoring.Print
 
 Поэтому рекомендуется всегда использовать аннотацию @FunctionalInterface, если интерфейс должен использоваться в качестве лямбды.
-
---------------------------------------------------------------------------------------------------------------------
