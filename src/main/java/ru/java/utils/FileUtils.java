@@ -1,7 +1,6 @@
 package ru.java.utils;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -17,7 +16,7 @@ public class FileUtils {
         return false;
     }
 
-    public static  File createFile(String fileName, String content) {
+    public static File createFile(String fileName, String content) {
         File file = new File(fileName);
         if (file.exists()) {
             write(file, content);
@@ -39,6 +38,13 @@ public class FileUtils {
             fw.write(content);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static void createHtmlDir(String path, File child) {
+        File file1 = new File(path + File.separator + child.getName() + "/html");
+        if (!file1.exists()) {
+            file1.mkdir();
         }
     }
 }

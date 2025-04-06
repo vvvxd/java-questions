@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static ru.java.utils.FileUtils.createHtmlDir;
+
 public class Main {
 
     private static String path = "./templates";
@@ -27,18 +29,18 @@ public class Main {
 
         File currentDir = new File("").getCanonicalFile();
 
+        System.out.println("Processing MD file start...");
         process(currentDir, "./", true, null);
+        System.out.println("Processing MD file end.");
     }
 
     public static Thema process(File file, String path, boolean main, String back) {
         if (file.isDirectory()) {
+            System.out.println("Process directory:" + path + " start.");
             Map<String, Thema> map = new HashMap<>();
             for (File child : file.listFiles((dir, name) -> !notProcessed.contains(name))) {
                 if (child.isDirectory()) {
-                    File file1 = new File(path + File.separator + child.getName() + "/html");
-                    if (!file1.exists()) {
-                        file1.mkdir();
-                    }
+                    createHtmlDir(path, child);
                     Thema thema = process(child, path + File.separator + child.getName(), false, main ? path + "/main.html" : path + "/html/main.html");
                     map.put(child.getName(), thema);
                 } else {
@@ -47,22 +49,22 @@ public class Main {
                 }
             }
 
-            if (!main) {
-                Context context = new Context(map, path + "/html/", file.getName());
-                return factory.createMainFile(context, false, back);
-            } else {
-                Context context = new Context(map, path, "Повторение");
-                return factory.createMainFile(context, true, back);
-            }
+            Context context = main ? new Context(map, path, "Повторение", back, main) : new Context(map, path + "/html/", file.getName(), back, main);
+
+            System.out.println("Process directory:" + path + " end.");
+
+            return factory.createMainFile(context);
+
         }
 
         return null;
     }
 
     public static void readTemplate() {
-        File file = new File(path);
 
-        System.out.println(file.exists());
+        System.out.println("Loading templates...");
+
+        File file = new File(path);
 
         for (File sub : file.listFiles()) {
             try (FileInputStream fis = new FileInputStream(sub)) {
@@ -92,6 +94,8 @@ public class Main {
                 throw new RuntimeException(e);
             }
         }
+
+        System.out.println("Loaded templates.");
 
     }
 }

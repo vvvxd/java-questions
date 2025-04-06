@@ -12,7 +12,6 @@ public class PhotoUtil {
         Matcher matcher = pattern.matcher(answer);
         String result = answer;
 
-        // Убрали проверку matches() и сразу ищем find()
         while (matcher.find()) {
             String value = matcher.group();
             String path = value.replaceAll("!\\[.*\\]\\(", "").replaceAll("\\)", "");
