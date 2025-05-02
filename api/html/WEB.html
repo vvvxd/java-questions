@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое www?",
+  answer: "Всемирная паутина (сокращенно World Wide Web или WWW) - это единство информационных ресурсов, которые связаны между собой средствами телекоммуникаций и основаны на гипертекстовом представлении данных, разбросанных по всему миру."
+}
+,{
+  question: "Что такое w3c?",
+  answer: "W3C - абревиатура, которая обозначает Консорциум мировой сети (World Wide Web Consortium), организацию, цель которой - разработка и внедрение единых стандартов работы Интернета. Главная задача - это постоянное внедрение принципов работы мировой сети, главным из которых является полная совместимость всех материалов, размещенных в сети, с програмным и аппаратным обеспечением пользователей."
+}
+,{
+  question: "Что такое URI?",
+  answer: "URI, Uniform Resource Identifier (унифицированный идентификатор ресурса) - последовательность символов, идентифицирующая физический или абстрактный ресурс, который не обязательно должен быть доступен через сеть Интернет, причем, тип ресурса, к которому будет получен доступ, определяется контекстом и/или механизмом. Как правило делится на URL и URN, поэтому URL и URN это составляющие URI."
+}
+,{
+  question: "Что такое URL?",
+  answer: "URL, Uniform Resource Locator (единообразный локатор (определитель местонахождения) ресурса). Также можно встретить более раннюю расшифровку аббревиатуры URL - Universal Resource Locator (универсальный локатор ресурсов) - другими словами это указатель размещения сайта в интернете, помимо идентификации ресурса, определяет местонахождение ресурса и способ обращения к нему. URL служит стандартизированным способом записи адреса ресурса в сети Интернет, URL-адрес содержит доменное имя и указание пути к странице, включая название файла этой страницы."
+}
+,{
+  question: "Что такое URN?",
+  answer: "URN, Unifrorm Resource Name (унифицированное имя ресурса) - является уникальным именем объекта. URN включает в себя название пространства имен и идентификатора в этом пространстве. URN является частью концепции URI. Имена URN, в отличие от URL, не включают в себя указания на местонахождение и способ обращения к ресурсу. Смысл URN в том, что он определяет только название конкретного предмета, который может находится во множестве конкретных мест."
+}
+,{
+  question: "Что такое интернет протокол IP?",
+  answer: "Интернет протокол (Internet Protocol, IP) - протокол сетевого уровня сетевой модели OSI (Open Systems Interconnection) и относится к протоколам, которые организуют соединения на основе коммутации каналов. Это один из самых распространенных протоколов является низкоуровневым маршрутизирующим сетевым протоколом, разбивающим данные на небольшие пакеты и посылающим их через сеть по определенному адресу, что не гарантирует доставки всех этих пакетов по этому адресу."
+}
+,{
+  question: "Что такое протокол управления ТСР?",
+  answer: "ТСР, Transmission Control Protocol (Протокол Управления Передачей) - является сетевым протоколом более высокого уровня, обеспечивающим связывание, сортировку и повторную передачу пакетов, чтобы обеспечить надежную доставку данных."
+}
+,{
+  question: "Что такое TCP/IP?",
+  answer: "Стек протоколов TCP/IP - набор сетевых протоколов передачи данных, используемых в сетях, включая сеть Интернет. Название TCP/IP происходит из двух наиважнейших протоколов семейства - Transmission Control Protocol (TCP) и Internet Protocol (IP), которые были разработаны и описаны первыми в данном стандарте."
+}
+,{
+  question: "Что такое FTP?",
+  answer: "FTP (File Transfer Protocol - протокол передачи файлов) - стандартный протокол, предназначенный для передачи файлов по TCP-сетям (например, Интернет). Использует 21й порт. FTP часто используется для загрузки сетевых страниц и других документов с частного устройства разработки на открытые сервера хостинга."
+}
+,{
+  question: "Что такое UDP?",
+  answer: "UDP (User Datagram Protocol - протокол пользовательских датаграмм) - один из ключевых элементов TCP/IP, набора сетевых протоколов для Интернета. С UDP компьютерные приложения могут посылать сообщения (в данном случае называемые датаграммами) другим хостам по IP-сети без необходимости предварительного сообщения для установки специальных каналов передачи или путей данных."
+}
+,{
+  question: "Что такое протокол передачи данных, какие вы знаете?",
+  answer: "Протокол передачи данных - набор соглашений интерфейса логического уровня, которые определяют обмен данными между различными программами. Эти соглашения задают единообразный способ передачи сообщений и обработки ошибок при взаимодействии программного обеспечения разнесённой в пространстве аппаратуры, соединённой тем или иным интерфейсом.<br>HTTP (Hyper Text Transfer Protocol) - это протокол передачи гипертекста. Протокол HTTP используется при пересылке Web-страниц с одного компьютера на другой.<br>FTP (File Transfer Protocol) - это протокол передачи файлов со специального файлового сервера на компьютер пользователя. FTP дает возможность абоненту обмениваться двоичными и текстовыми файлами с любым компьютером сети. Установив связь с удаленным компьютером, пользователь может скопировать файл с удаленного компьютера на свой или скопировать файлсо своего компьютера на удаленный.<br>POP (Post Office Protocol) - это стандартный протокол почтового соединения. Серверы POP обрабатывают входящую почту, а протокол POP предназначен для обработки запросов на получение почты от клиентских почтовых программ.<br>SMTP (Simple Mail Transfer Protocol) - протокол, который задает набор правил для передачи почты. Сервер SMTP возвращает либо подтверждение о приеме, либо сообщение об ошибке, либо запрашивает дополнительную информацию."
+}
+,{
+  question: "Что такое web server?",
+  answer: "Веб-сервер - сервер, принимающий HTTP-запросы от клиентов, обычно веб-браузеров, и выдающий им HTTP-ответы, как правило, вместе с HTML-страницей, изображением, файлом, медиа-потоком или другими данными."
+}
+,{
+  question: "Что такое web приложение?",
+  answer: "Веб-приложение - клиент-серверное приложение, в котором клиентом выступает браузер, а сервером - веб-сервер. Логика веб-приложения распределена между сервером и клиентом, хранение данных осуществляется, преимущественно, на сервере, обмен информацией происходит по сети. Одним из преимуществ такого подхода является тот факт, что клиенты не зависят от конкретной операционной системы пользователя, поэтому веб-приложения являются межплатформенными сервисами."
+}
+,{
+  question: "Что такое application server?",
+  answer: "Сервер приложений (application server) - это программная платформа (фреймворк), предназначенная для эффективного исполнения процедур (программ, механических операций, скриптов), которые поддерживают построение приложений. Сервер приложений действует как набор компонентов, доступных разработчику программного обеспечения через API (Интерфейс прикладного программирования), который определен самой платформой."
+}
+,{
+  question: "Чем отличаются web server и application server?",
+  answer: "Сервер приложений - сервер, исполняющий некоторые прикладные программы.<br>Веб-сервер - это сервер, принимающий HTTP-запросы от клиентов, обычно веб-браузеров, и выдающий им HTTP-ответы."
+}
+,{
+  question: "Что такое MIME type?",
+  answer: "MIME (Multipurpose Internet Mail Extension, Многоцелевые расширения почты Интернета) - спецификация для передачи по сети файлов различного типа: изображений, музыки, текстов, видео, архивов и др. Указание MIME-типа используется в HTML обычно при передаче данных форм и вставки на страницу различных объектов."
+}
+,{
+  question: "Дайте определение понятиям 'авторизация' и 'аутентификация', в чем их различия?",
+  answer: "Аутентификация - это проверка соответствия субъекта и того, за кого он пытается себя выдать, с помощью некой уникальной информации (отпечатки пальцев, цвет радужки, голос и тд.), в простейшем случае - с помощью имени входа и пароля.<br>Авторизация - это проверка и определение полномочий на выполнение некоторых действий (например, чтение файла /var/mail/eltsin) в соответствии с ранее выполненной аутентификацией."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

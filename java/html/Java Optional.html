@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Цель класса Optional",
+  answer: "Цель класса — предоставить решение на уровне типа для представления опциональных значений вместо null (нулевых) ссылок.Можно воспринимать Optional, как некую коробку, обертку, в которую кладется какой-либо объект. Optional всего лишь контейнер: он может содержать объект некоторого типа Т, а может быть пустым."
+}
+,{
+  question: "Как создать Optional?",
+  answer: "1) Чтобы создать пустой объект Optional, нужно просто использовать его статический метод empty():Optional<String> empty = Optional.empty();2) Можно также создать объект Optional с помощью статического метода of():Optional<String> opt = Optional.of(name);Однако аргумент, переданный в метод of(), не может быть null. В противном случае мы получим NullPointerException:3)Но в случае, если мы предполагаем некоторые значения null, то можно использовать метод ofNullable():Optional<String> opt = Optional.ofNullable(name);Таким образом, если мы передаем null ссылку, это не вызовет исключения, а вернет пустой объект Optional:"
+}
+,{
+  question: "Как проверить наличие значения в Optional?",
+  answer: "1) Когда у нас есть объект Optional, возвращенный из метода или созданный нами, мы можем проверить, есть ли в нем значение или нет, с помощью метода isPresent():Optional<String> opt = Optional.of('Baeldung'); opt.isPresent();Этот метод возвращает true, если обернутое значение не является null.2) Начиная с Java 11, мы можем сделать обратное с помощью метода isEmpty:Optional<String> opt = Optional.of('Baeldung'); opt.isEmpty();"
+}
+,{
+  question: "Что делает ifPresent()",
+  answer: "Метод ifPresent() позволяет нам запустить некоторый код для обернутого значения, если выяснится, что оно не является null. До метода Optional мы бы сделали следующее:if(name != null) { System.out.println(name.length()); }Этот код проверяет, является ли переменная name null или нет, прежде чем приступить к выполнению какого-либо кода над ней. Такой подход занимает много времени, и это не единственная проблема — он также склонен к ошибкам.<br>В самом деле, где гарантия, что после печати этой переменной мы не воспользуемся ею снова, а потом забудем выполнить проверку на null?<br>Это может привести к NullPointerException во время выполнения программы, если в этот код попадет значение null. Когда программа терпит неудачу из-за проблем с вводом, это часто является результатом плохой практики программирования.<br>Optional заставляет нас иметь дело с допускающими null значениями в явном виде, как способ принуждения к хорошей практике программирования.<br>Теперь давайте посмотрим, каким образом приведенный выше код может быть рефакторизован в Java 8.<br>В типичном стиле функционального программирования мы можем выполнить действие над объектом, который действительно присутствует:Optional<String> opt = Optional.of('baeldung'); opt.ifPresent(name -> System.out.println(name.length())); }"
+}
+,{
+  question: "Что делает ifPresentOrElse()",
+  answer: "Метод ifPresent() ничего не сделает, если у вас нет объекта, но если вам и в этом случае необходимо выполнить какой-то код, то используйте метод ifPresentOrElse(), который принимает в качестве параметра еще и функциональный интерфейс Runnable.personRepository<br>.findById(id)<br>.ifPresentOrElse( person -> System.out.println(person.getFirstName() + ' ' + person.getLastName()),<br>() -> System.out.println('Иван Иванов') );"
+}
+,{
+  question: "Что делает orElse()",
+  answer: "Метод orElse() используется для получения значения, обернутого внутри экземпляра Optional. Он принимает один параметр, который выступает в качестве значения по умолчанию. Метод orElse() возвращает обернутое значение, если оно присутствует, либо его аргумент в противном случае:@Test public void whenOrElseWorks_thenCorrect() { String nullName = null; String name = Optional.ofNullable(nullName).orElse('john'); assertEquals('john', name); }"
+}
+,{
+  question: "Что делает orElseGet()",
+  answer: "Метод orElseGet() аналогичен методу orElse(). Однако вместо того, чтобы принимать значение для возврата, если Optional значение отсутствует, он принимает функциональный интерфейс поставщика, который вызван и возвращает значение вызова:@Test public void whenOrElseGetWorks_thenCorrect() { String nullName = null; String name = Optional.ofNullable(nullName).orElseGet(() -> 'john'); assertEquals('john', name);<br>}"
+}
+,{
+  question: "Разница между orElse и orElseGet()",
+  answer: "Многим программистам, которые только начинают работать с Optional или Java 8, разница между orElse() и orElseGet() непонятна. На самом деле, создается впечатление, что эти два метода перекрывают друг друга по функциональности.<br>Однако между ними есть тонкое, но очень важное различие, которое может сильно повлиять на производительность нашего кода, если его не понять.<br>Давайте создадим в тестовом классе метод getMyDefault(), который не принимает никаких аргументов и возвращает значение по умолчанию:public String getMyDefault() {<br>System.out.println('Getting Default Value');<br>return 'Default Value';<br>}Давайте рассмотрим два теста и понаблюдаем за их побочными эффектами, чтобы определить, где orElse() и orElseGet() пересекаются, а где отличаются:@Test public void whenOrElseGetAndOrElseOverlap_thenCorrect() {<br>String text = null;<br>String defaultText = Optional.ofNullable(text)<br>.orElseGet(this::getMyDefault);<br>assertEquals('Default Value', defaultText);<br>defaultText = Optional.ofNullable(text)<br>.orElse(getMyDefault());<br>assertEquals('Default Value', defaultText);<br>}<br>В приведенном выше примере мы обертываем null текст внутри объекта Optional и пытаемся получить обернутое значение, используя каждый из двух подходов.<br>Побочный эффект таков:<br>Getting default value... Getting default value...<br>В каждом случае вызывается метод getMyDefault(). Выходит, что если обернутое значение отсутствует, то и orElse(), и orElseGet() работают одинаково.<br>Теперь давайте проведем еще один тест, в котором значение присутствует, и в идеале значение по умолчанию даже не должно создаваться:<br>@Test public void whenOrElseGetAndOrElseDiffer_thenCorrect() {<br>String text = 'Text present';<br>System.out.println('Using orElseGet:');<br>String defaultText = Optional.ofNullable(text)<br>.orElseGet(this::getMyDefault);<br>assertEquals('Text present', defaultText); System.out.println('Using orElse:');<br>defaultText = Optional.ofNullable(text)<br>.orElse(getMyDefault());<br>assertEquals('Text present', defaultText);<br>}<br>В приведенном выше примере мы больше не оборачиваем значение null, а остальная часть кода остается прежней.<br>Теперь давайте посмотрим на побочный эффект от выполнения этого кода:<br>Using orElseGet: Using orElse: Getting default value...<br>Обратите внимание, что при использовании orElseGet() для извлечения обернутого значения метод getMyDefault() даже не вызывается, поскольку содержащееся значение присутствует.<br>Однако при использовании orElse(), независимо от того, есть ли обернутое значение или нет, создается объект по умолчанию. Таким образом, в данном случае мы просто создали один лишний объект, который никогда не используется.<br>В этом простом примере создание объекта по умолчанию не требует значительных затрат, поскольку JVM знает, как с ним обращаться. Однако когда такой метод, как getMyDefault(), должен выполнить вызов веб-сервиса или даже запрос к базе данных, затраты становятся весьма очевидными."
+}
+,{
+  question: "Исключения с помощью orElseThrow()",
+  answer: "Метод orElseThrow() следует из orElse() и orElseGet() и добавляет новый подход к обработке отсутствующего значения.<br>Вместо того чтобы возвращать значение по умолчанию, когда обернутое значение отсутствует, он выбрасывает исключение:String nullName = null;<br>String name = Optional.ofNullable(nullName)<br>.orElseThrow( IllegalArgumentException::new);Здесь пригодятся ссылки на методы в Java 8, чтобы передать в конструктор исключения.<br>Java 10 представила упрощенную версию метода orElseThrow() без аргументов. В случае пустого Optional он выбрасывает исключение NoSuchElementException:String nullName = null;<br>String name = Optional.ofNullable(nullName).orElseThrow();"
+}
+,{
+  question: "Возвращение значения с помощью get()",
+  answer: "Последний способ получения обернутого значения — метод get():@Test public void givenOptional_whenGetsValue_thenCorrect() { Optional<String> opt = Optional.of('baeldung');<br>String name = opt.get();<br>assertEquals('baeldung', name);<br>}Однако, в отличие от предыдущих трех подходов, get() может вернуть значение, только если обернутый объект не является null; в противном случае он выбрасывает исключение нет такого элемента:<br>@Test(expected = NoSuchElementException.class)<br>public void givenOptionalWithNull_whenGetThrowsException_thenCorrect() {<br>Optional<String> opt = Optional.ofNullable(null);<br>String name = opt.get();<br>}<br>Это основной недостаток метода get(). В идеале Optional должен помочь нам избежать таких непредвиденных исключений. Поэтому данный подход противоречит целям Optional и, вероятно, будет упразднен в одном из будущих выпусков.<br>Поэтому рекомендуется использовать другие варианты, которые позволяют нам быть готовыми к случаю null и явно его обрабатывать."
+}
+,{
+  question: "Как работает Метод filter() для Optional",
+  answer: "Если внутри контейнера есть значение и оно удовлетворяет переданному условию в виде функционального интерфейса Predicate, то будет возвращен новый объект Optional с этим значением, иначе будет возвращен пустой Optional.<br>Например, мы сделаем метод, который возвращает только взрослых пользователей по id.personRepository.findById(id)<br>.filter(person -> person.getAge() > 18);Используйте его, когда вам нужен контейнер, объект в котором удвлетворят какому-то условию."
+}
+,{
+  question: "Как работает Метод map() для Optional",
+  answer: "Если внутри контейнера есть значение, то к значению применяется переданная функция, результат помещается в новый Optional и возвращается, в случае отсутствия значения будет возвращен пустой контейнер. Для преобразования используется функциональный интерфейс Function.Сделаем метод, который по идентификатору пользователя возвращает Optional<String>, содержащий имя и фамилию этого пользователя.personRepository.findById(id)<br>.map(person -> person.getFirstName() + ' ' + person.getLastName());Используйте этот метод, когда необходимо преобразовать объект внутри контейнера в другой объект."
+}
+,{
+  question: "Как работает Метод flatMap() для Optional",
+  answer: "Как уже было сказано, map() оборачивает возвращаемый результат лямбды Function. Но что, если эта лямбда у нас будет возвращать уже обернутый результат, у нас получится Optional<Optional<T>>. С таким дважды упакованным объектом будет сложно работать.Для примера, мы можем запрашивать какие-то данные о пользователе из другого сервиса, и этих данных тоже может не быть, поэтому возникает второй контейнер. Вот как это будет выглядеть:Optional<Optional<String>> optUserPhoneNumber = personRepository<br>.findById(1L)<br>.map(person -> {<br>Optional<String> optPhoneNumber = phoneNumberRepository.findByPersonId(person.getId()); return optPhoneNumber; }<br>);В таком случае используйте flatMap(), он позволит вам избавиться от лишнего контейнера.Optional<String> optUserPhoneNumber = personRepository.findById(1L) .flatMap(person -> { Optional<String> optPhoneNumber = phoneNumberRepository.findByLogin(user.getLogin()); return optPhoneNumber; });"
+}
+,{
+  question: "Метод or()",
+  answer: "Начиная с Java 11 добавили новый метод or(). Он позволяет изменить пустой Optional передав новый объект, раньше так сделать было нельзя.<br>Важно понимать, что этот метод не изменяет объект Optional, а создает и возвращает новый.<br>Например мы запрашиваем пользователя по идентификатору, и если его нет в хранилище, то мы передаем Optional анонимного пользователя.personRepository.findById(id)<br>.or(() -> Optional.of(new Person(-1L, 'anon', 'anon', 'anon', 0L)));"
+}
+,{
+  question: "Комбинирование методов в Optional",
+  answer: "Все перечисленные методы возвращают в ответ Optional, поэтому вы можете составлять из них цепочки, прямо как у стримов.Пример оторванный от реальности, но иллюстрирующий цепочку методов:final LocalDateTime now = LocalDateTime.now();<br>final DayOfWeek dayWeek = Optional.of(now) .map(LocalDateTime::getDayOfWeek) .filter(dayOfWeek -> DayOfWeek.SUNDAY.equals(dayOfWeek)) .orElse(DayOfWeek.MONDAY);"
+}
+,{
+  question: "Когда стоит использовать Optional",
+  answer: "Если открыть javadoc Optional, можно найти там прямой ответ на данный вопрос.Optional в первую очередь предназначен для использования в качестве типа возвращаемого значения метода, когда существует явная необходимость представлять «отсутствие результата» и где использование null может вызвать ошибки."
+}
+,{
+  question: "Как НЕ стоит использовать Optional",
+  answer: "Как параметр метода<br>Не стоит использовать Optional, в качестве параметра метода. Если пользователь метода с параметром Optional не знает об этом, он может передать методу null вместо Optional.empty(). И обработка null приведет к исключению NullPointerException.Как свойство класса<br>Также не используйте Optional для объявления свойств класса.<br>Во-первых, у вас могут возникнуть проблемы с такими популярными фремворками, как Spring Data/Hibernate. Hibernate не может замапить значения из БД на Optional напрямую , без кастомных конвертеров.Во-вторых, не стоит забывать, что Optional это объект, который обычно нужен на пару секунд, после чего он может быть безболезненно удален сборщиком мусора. Но на создание объекта нужно время, и если мы храним Optional в качестве поля, он может оставаться там вплоть до самой остановки программы. Вряд ли это приведет к проблемам в небольших приложениях, но все же учтите это.В-третьих, использование таких полей будет неудобным Optional не имплементирует интерфейс Serializable. Проще говоря, любой объект, который содержит хотя бы одно Optional поле, нельзя сериализовать. Хотя с приходом микросервисов платформенная сериализация не является настолько важной, как раньше.Решением в такой ситуации может быть использование Optional для геттеров класса. Однако у этого подхода есть один недостаток. Его нельзя полностью интегрировать с Lombok. Optional getters не подерживаются библиотекой и, судя по некоторым обсуждениям на Github, не будут.Как обертка коллекции<br>Не оборачивайте коллекции в Optional. Любая коллекция является контейнером сама по себе. Чтобы вернуть пустую коллекцию, вместо null, можно воспользоваться следующими методами Collections.emptyList(), Collections.emptySet() и прочими."
+}
+,{
+  question: "Optional не должен равняться null",
+  answer: "Присваивание null вместо объекта Optional разрушает саму концепцию его использования. Никто из пользователей вашего метода не будет проверять Optional на эквивалентность с null. Вместо присваивания null следует использовать Optional.empty()."
+}
+,{
+  question: "Примитивы и Optional",
+  answer: "Для работы с обертками примитивов есть java.util.OptionalDouble, java.util.OptionalInt и java.util.OptionalLong, которые позволяют избегать лишних автоупаковок и распаковок. Однако не смотря на это, на практике используются они крайне редко.<br>Все эти классы похожи на Optional, но не имеют методов преобразования. В них доступны только: get, orElse, orElseGet, orElseThrow, ifPresent и isPresent."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

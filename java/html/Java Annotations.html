@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое Аннотации в Java?",
+  answer: "Аннотации - это своего рода метатеги, которые добавляются к коду и применяются к объявлению пакетов, классов, конструкторов, методов, полей, параметров и локальных переменных. Аннотации всегда обладают некоторой информацией и связывают эти 'дополнительные данные' и все перечисленные конструкции языка.Фактически аннотации представляют собой их дополнительные модификаторы, применение которых не влечет за собой изменений ранее созданного кода."
+}
+,{
+  question: "Плюсы использования аннотаций",
+  answer: "Информация для компилятора. Компилятор может использовать аннотации для обнаружения ошибок или подавления предупреждений.Информация для разработчика. Когда кто-то просматривает код, аннотации помогают сделать его читабельным и более легким для понимания.Обработка времени компиляции и развертывания. Программные средства могут обрабатывать аннотации для создания кода, XML-файлов и т.д.Обработка во время выполнения. Аннотации могут проверяться во время выполнения для прохождения тестов.Уменьшение дублирования кода.Автоматизация генерации бойлерплейт кода.Отлов ошибок во время компиляции, например, потенциальные Null Pointer Exception.Настройка поведения в рантайме на основе наличия аннотации."
+}
+,{
+  question: "Какие функции выполняет Аннотации?",
+  answer: "Аннотация выполняет следующие функции:дает необходимую информацию для компилятора;дает информацию различным инструментам для генерации другого кода, конфигураций и т. д.;может использоваться во время работы кода;Самая часто встречаемая аннотация, которую встречал любой программист, даже начинающий это @Override."
+}
+,{
+  question: "Какие встроенные аннотации в Java вы знаете?",
+  answer: "В языке Java SE определено несколько встроенных аннотаций, большинство из их являются специализированными.<br>Четыре типа @Retention, @Documented, @Target и @Inherited - из пакета java.lang.annotation.<br>Из оставшиеся выделяются - @Override, @Deprecated, @SafeVarargs и @SuppressWarnings - из пакета java.lang. Широкое использование аннотаций в различных технологиях и фреймворках обуславливается возможностью сокращения кода и снижения его связанности."
+}
+,{
+  question: "Что делают аннотации @Retention, @Documented, @Target и @Inherited?",
+  answer: "Эти аннотации, имеют следующее значение:<br>@Retention - эта аннотация предназначена для применения только в качестве аннотации к другим аннотациям, позволяет указать жизненный цикл аннотации: будет она присутствовать только в исходном коде, в скомпилированном файле, или она будет также видна и в процессе выполнения. Выбор нужного типа зависит от того, как вы хотите использовать аннотацию.<br>@Documented - это маркер-интерфейс, который сообщает инструменту, что аннотация должна быть документирована.<br>@Target - эта аннотация задает тип объявления, к которым может быть применима аннотация. Принимает один аргумент, который должен быть константой из перечисления ElementType, это может быть поле, метод, тип и т.д. Например, чтобы указать, что аннотация применима только к полям и локальным переменным:<br>@Targer({ ElementType.FIELD, ElementTyle.LOCAL_VARIABLE } )<br>@Inherited - это аннотация-маркер, которая может применяться в другом объявление аннотации, она касается только тех аннотаций, что будут использованы в объявлениях классов. Эта аннотация позволяет аннотации супер класса быть унаследованной в подклассе."
+}
+,{
+  question: "Что делают аннотации @Override, @Deprecated, @SafeVarargs и @SuppressWarnings?",
+  answer: "Эти аннотации предназначены для:@Override - аннотация-маркер, которая может применяться только к методам. Метод, аннотированный как @Override, должен переопределять метод супер класса.@Deprecated - указывает, что объявление устарело и должно быть заменено более новой формой.@SafeVarargs - аннотация-маркер, применяется к методам и конструкторам. Функциональность varargs позволяет создавать методы с переменным количеством аргументов. До Java 5 единственной возможностью создания методов с необязательными параметрами было создание нескольких методов, каждый из которых с разным количеством параметров. Varargs позволяет создать один метод с переменным количеством параметров с помощью следующего синтаксиса:<br>void printStrings(String... stringList)<br>Она указывает, что никакие небезопасные действия, связанные с параметром переменного количества аргументов, недопустимы. Применяется только к методам и конструкторам с переменным количеством аргументов, которые объявлены как static или final.@SuppressWarnings - эта аннотация указывает, что одно или более предупреждений, которые могут быть выданы компилятором следует подавить."
+}
+,{
+  question: "Какой жизненный цикл аннотации можно указать с помощью @Retention?",
+  answer: "Существует 3 возможные варианты чтобы указать где аннотация будет жить. Они инкапсулированы в перечисление java.lang.annotation.RetentionPolicy. Это SOURSE, CLASS, RUNTIME.<br>SOURCE - содержаться только в исходном файле и отбрасываются при компиляции.<br>CLASS - сохраняются в файле, однако они недоступны JVM во время выполнения.<br>RUNTIME - сохраняются в файле во время компиляции и остаются доступными JVM во время выполнения."
+}
+,{
+  question: "К каким элементам можно применять аннотацию, как это указать?",
+  answer: "Для того чтобы ограничить использование аннотации её нужно проаннотировать. Для этого существует аннотация@Target.@Target(ElementType.PACKAGE) - только для пакетов;<br>@Target(ElementType.TYPE) - только для классов;<br>@Target(ElementType.CONSTRUCTOR) - только для конструкторов;<br>@Target(ElementType.METHOD) - только для методов;<br>@Target(ElementType.FIELD) - только для атрибутов(переменных) класса;<br>@Target(ElementType.PARAMATER) - только для параметров метода;<br>@Target(ElementType.LOCAL_VARIABLE) - только для локальных переменных.В случае если вы хотите, что бы ваша аннотация использовалась больше чем для одного типа параметров, то можно указать @Target следующим образом:<br>@Target({ ElementType. PARAMETER, ElementType. LOCAL_VARIABLE<br>тут мы говорим, аннотацию можно использовать только для параметров метода и для локальных переменных."
+}
+,{
+  question: "Как создать свою Аннотацию?",
+  answer: "Написать свою аннотацию не так сложно, как могло бы казаться. В следующем коде приведено объявление аннотации.public @interface About{String info() default}как вы видите на месте где обычно пишут class или interface у нас написано @interface.Структура практически та же, что и у интерфейсов, только пишется @interface.<br>@interface - указывает на то, что это аннотация<br>default - говорит про то, что метод по умолчанию будет возвращать определённое значение.<br>Аннотация готова теперь ею можно пользоваться, также аннотацию можно сконфигурировать."
+}
+,{
+  question: "Атрибуты каких типов допустимы в аннотациях?",
+  answer: "Атрибуты могут иметь только следующие типы:<br>String<br>Class или «any parameterized invocation of Class»<br>enum<br>annotation<br>массив элементов любого из вышеперечисленных типов<br>Последний пункт надо понимать как то, что допустимы только одномерные массивы."
+}
+,{
+  question: "Для чего нужно аннотация @FunctionalInterface",
+  answer: "Аннотация @FunctionalInterface используется для указания того, что в интерфейсе не может быть более одного абстрактного метода. Если абстрактных методов будет больше одного, то компилятор выдаст ошибку. Функциональные интерфейсы появились в Java 8 для реализации лямбда-выражений и гарантии того, что в них не более одного абстрактного метода.Но и без аннотации @FunctionalInterface компилятор выдаст ошибку, если вы включите в интерфейс больше одного абстрактного метода. Так зачем же нужна необязательная аннотация @FunctionalInterface?<br>Давайте рассмотрим следующий пример:@FunctionalInterface<br>interface Print {<br>void printString(String testString);<br>}Если в интерфейс Print мы добавим еще один метод printString2(), то компилятор или IDE выдаст ошибку.А что, если интерфейс Print находится в отдельном модуле и без аннотации @FunctionalInterface? Разработчики этого модуля могут легко добавить в интерфейс еще один метод и сломать ваш код. Добавив аннотацию @FunctionalInterface, мы сразу получим предупреждение в IDE:Multiple non-overriding abstract methods found in interface com.reflectoring.PrintПоэтому рекомендуется всегда использовать аннотацию @FunctionalInterface, если интерфейс должен использоваться в качестве лямбды."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

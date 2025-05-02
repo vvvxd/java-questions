@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое веб сервисы?",
+  answer: "Веб-служба, веб-сервис (англ. web service) — идентифицируемая веб-адресом программная система со стандартизированными интерфейсами. Веб-службы могут взаимодействовать друг с другом и со сторонними приложениями посредством сообщений, основанных на определённых протоколах (SOAP, XML-RPC, REST и т. д.). Веб-служба является единицей модульности при использовании сервис-ориентированной архитектуры приложения. К характеристикам веб сервисов относят:<br>Функциональная совместимость<br>Расширяемость<br>Возможность машинной обработки описания"
+}
+,{
+  question: "В чем разница между SOA и web service?",
+  answer: "Сервис-ориентированная архитектура (SOA, service-oriented architecture) — модульный подход к разработке программного обеспечения, основанный на использовании распределённых, слабо связанных (англ. loose coupling) заменяемых компонентов, оснащённых стандартизированными интерфейсами для взаимодействия по стандартизированным протоколам. Программные комплексы, разработанные в соответствии с сервис-ориентированной архитектурой, обычно реализуются как набор веб-служб, взаимодействующих по протоколу SOAP, но существуют и другие реализации (например, на базе jini, CORBA, на основе REST). Веб сервисы реализующие эту концепцию используют XML, JSON и др., а так же интернет протоколы вроде HTTP(S), SMTP и др.."
+}
+,{
+  question: "Что такое SOAP?",
+  answer: "SOAP (от англ. Simple Object Access Protocol — простой протокол доступа к объектам; вплоть до спецификации 1.2) — протокол обмена структурированными сообщениями в распределённой вычислительной среде. Первоначально SOAP предназначался в основном для реализации удалённого вызова процедур (RPC). Сейчас протокол используется для обмена произвольными сообщениями в формате XML, а не только для вызова процедур. Официальная спецификация последней версии 1.2 протокола никак не расшифровывает название SOAP. SOAP является расширением протокола XML-RPC.<br>SOAP может использоваться с любым протоколом прикладного уровня: SMTP, FTP, HTTP, HTTPS и др. Однако его взаимодействие с каждым из этих протоколов имеет свои особенности, которые должны быть определены отдельно. Чаще всего SOAP используется поверх HTTP."
+}
+,{
+  question: "В чем разница между REST и SOAP веб сервисами?",
+  answer: "REST поддерживает различные форматы: text, JSON, XML; SOAP - только XML,<br>REST работает только по HTTP(S), а SOAP может работать с различными протоколами,<br>REST может работать с ресурсами. Каждый URL это представление какого-либо ресурса. SOAP работает с операциями, которые реализуют какую-либо бизнес логику с помощью нескольких интерфейсов,<br>SOAP на основе чтения не может быть помещена в кэш, а REST в этом случае может быть закэширован,<br>SOAP поддерживает SSL и WS-security, в то время как REST - только SSL,<br>SOAP поддерживает ACID (Atomicity, Consistency, Isolation, Durability). REST поддерживает транзакции, но ни один из ACID не совместим с двух фазовым коммитом."
+}
+,{
+  question: "Как бы вы решили какой из REST или SOAP веб сервисов использовать?",
+  answer: "REST против SOAP можно перефразировать как 'Простота против Стандарта'. В случае REST (простота) у вас будет скорость, расширяемость и поддержка многих форматов. В случае с SOAP у вас будет больше возможностей по безопасности (WS-security) и транзакционная безопасность (ACID)."
+}
+,{
+  question: "Объясните понятие WSDL.",
+  answer: "WSDL (англ. Web Services Description Language) — язык описания веб-сервисов и доступа к ним, основанный на языке XML.<br>Каждый документ WSDL 1.1 можно разбить на следующие логические части:<br>определение типов данных (types) — определение вида отправляемых и получаемых сервисом XML-сообщенийэлементы данных (message) — сообщения, используемые web-сервисомабстрактные операции (portType) — список операций, которые могут быть выполнены с сообщениямисвязывание сервисов (binding) — способ, которым сообщение будет доставлено"
+}
+,{
+  question: "Можем ли мы посылать soap сообщения с вложением?",
+  answer: "Да, это возможно. Можно посылать вложением различные форматы: PDF, изображения или другие двоичные данные. Сообщения SOAP работают вместе с расширением MIME, в котором предусмотрено multipart/related:<br>MIME-Version: 1.0<br>Content-Type: Multipart/Related; boundary=MIME_boundary; type=text/xml;<br>start='<claim061400a.xml@ javastudy.ru>'<br>Content-Description: This is the optional message description.<br><?xml version='1.0' ?><br><SOAP-ENV:Envelope<br>xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'><br><SOAP-ENV:Body><br>..<br><theSignedForm href='cid:claim061400a.tiff@javastudy.ru'/><br>..<br></SOAP-ENV:Body><br></SOAP-ENV:Envelope><br>--MIME_boundary<br>Content-Type: image/tiff<br>Content-Transfer-Encoding: binary<br>Content-ID: <claim061400a.tiff@javastudy.ru><br>...binary TIFF image...<br>--MIME_boundary—"
+}
+,{
+  question: "Что такое MTOM?",
+  answer: "MTOM (Message Transmission Optimization Mechanism) - использование кодирования сообщений с помощью механизма оптимизации передачи сообщений. Это механизм передачи больших вложений в двоичном формате с сообщениями протокола SOAP как необработанных байтов, допустимых для меньших сообщений."
+}
+,{
+  question: "Что такое XOP?",
+  answer: "XOP (XML-binary Optimized Packaging) — механизм, рекомендованный W3C для встраивания двоичных данных в набор информационных элементов XML (XML Information Set)."
+}
+,{
+  question: "Объясните элемент SOAP envelope.",
+  answer: "Элемент SOAP envelope является корневым элементом SOAP сообщения и определяет XML документ как SOAP сообщение.<?xml version='1.0'?><br><soap:Envelope<br>xmlns:soap='http://www.w3.org/2001/12/soap-envelope'<br>soap:encodingStyle='http://www.w3.org/2001/12/soap-encoding'><br>...<br>Message information<br>...<br></soap:Envelope>"
+}
+,{
+  question: "Как определяется пространство имен SOAP?",
+  answer: "xmlns:soap=http://www.w3.org/2001/12/soap-envelope"
+}
+,{
+  question: "Что вы знаете о кодировании в SOAP (encoding)?",
+  answer: "Кодирование SOAP представляет собой метод для структурирования запроса, который предлагается в рамках спецификации SOAP, известный как SOAP-сериализация."
+}
+,{
+  question: "Что определяет атрибут encodingStyle в SOAP?",
+  answer: "SOAP encodingStyle определяет правила сериализации, используемые в сообщении SOAP. Этот атрибут может появиться на любом элементе, и область видимости этого атрибута будет распространяться на все дочерние элементы, даже на те, которые не имеют явно этого атрибута. Для сообщений SOAP по умолчанию кодирование не определено.SOAP-ENV:encodingStyle='http://www.w3.org/2001/12/soap-encoding'"
+}
+,{
+  question: "Какие существуют правила для кодирования записи header?",
+  answer: "заголовок должен быть идентифицирован с помощью полного имени, которое содержит пространство имен URI и локальное имя. Все непосредственные дочерние элементы SOAP заголовка должны быть заданы в пространстве имен,атрибут SOAP encodingStyle должен использоваться для указания стиля кодирования заголовка,атрибут SOAP mustUnderstand и атрибут SOAP actor должны использоваться для указания того, как обрабатывать запись и кем."
+}
+,{
+  question: "Какие вы можете выделить различия между SOAP и другими техниками удаленного доступа?",
+  answer: "SOAP проще в использовании, т.к. он не симметричный вроде DCOM или COBRA,SOAP является более независимым от платформы и языка в отличие от DCOM или CORBA,SOAP использует HTTP в качестве транспортного протокола и данные сохраняются в формате XML, который может быть прочтен человеком, тогда как DCOM или CORBA имеют свои собственные бинарные форматы, которые используются для транспортировки данных сложным образом.SOAP идентифицирует объект, отличный от конечного URL. Объекты SOAP являются независимыми и их сложно поддерживать. В случае других методов удаленного доступа работа в этом случае может быть проще."
+}
+,{
+  question: "REST и SOAP разница?",
+  answer: "REST и SOAP на самом деле не сопоставимы. REST — это архитектурный стиль. SOAP — это формат обмена сообщениями. Давайте сравним популярные реализации стилей REST и SOAP.<br>Пример реализации RESTful: JSON через HTTP<br>Пример реализации SOAP: XML поверх SOAP через HTTP<br>На верхнем уровне SOAP ограничивает структуры ваших сообщений, тогда как REST — это архитектурный подход, ориентированный на использование HTTP в качестве транспортного протокола.<br>Специфика SOAP — это формат обмена данными. С SOAP это всегда SOAP-XML, который представляет собой XML, включающий:— Envelope (конверт) - корневой элемент, который определяет сообщение и пространство имен, использованное в документе,— Header (заголовок) - содержит атрибуты сообщения, например: информация о безопасности или о сетевой маршрутизации,— Body (тело) - содержит сообщение, которым обмениваются приложения,— Fault - необязательный элемент, который предоставляет информацию об ошибках, которые произошли при обработке сообщений. И запрос, и ответ должны соответствовать структуре SOAP.<br>Специфика REST — использование HTTP в качестве транспортного протокола. Он подразумевает наилучшее использование функций, предоставляемых HTTP — методы запросов, заголовки запросов, ответы, заголовки ответов и т. д."
+}
+,{
+  question: "Формат обмена сообщениями REST и SOAP",
+  answer: "В SOAP вы используете формат SOAP XML для запросов и ответов.<br>В REST такого фиксированного формата нет. Вы можете обмениваться сообщениями на основе XML, JSON или любого другого удобного формата. JSON является самым популярным среди используемых форматов."
+}
+,{
+  question: "Определения услуг REST и SOAP",
+  answer: "SOAP использует WSDL (Web Services Description Language) — язык описания веб-сервисов и доступа к ним, основанный на языке XML.<br>REST не имеет стандартного языка определения сервиса. Несмотря на то, что WADL был одним из первых предложенных стандартов, он не очень популярен. Более популярно использование Swagger или Open API."
+}
+,{
+  question: "REST и SOAP Транспорт",
+  answer: "SOAP не накладывает никаких ограничений на тип транспортного протокола. Вы можете использовать либо Web протокол HTTP, либо MQ.REST подразумевает наилучшее использование транспортного протокола HTT"
+}
+,{
+  question: "REST и SOAP Простота реализации",
+  answer: "RESTFful веб-сервисы, как правило, гораздо проще реализовать, чем веб-сервисы на основе SOAP.<br>REST обычно использует JSON, который легче анализировать и обрабатывать. В дополнение к этому, REST не требует наличия определения службы для предоставления веб-службы.<br>Однако в случае SOAP вам необходимо определить свой сервис с использованием WSDL, и при обработке и анализе сообщений SOAP-XML возникают большие накладные расходы."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

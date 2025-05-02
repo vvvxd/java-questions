@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "1)Что такое MongoDb?",
+  answer: "MongoDB — это мощная, гибкая и масштабируемая база данных, которая относится к категории NoSQL (нереляционных баз данных). В отличие от традиционных реляционных баз данных, таких как MySQL или PostgreSQL, MongoDB использует модель документов, где данные хранятся в формате BSON (Binary JSON), а не в виде таблиц."
+}
+,{
+  question: "2)Как в MongoDb организуются данные?",
+  answer: "документ представляет собой основную единицу данных в MongoDB и приблизительно эквивалентен строке в реляционной системе<br>управления базами данных (но гораздо более выразителен);аналогично коллекцию можно рассматривать как таблицу с динамической схемой;один экземпляр MongoDB может содержать несколько независимых баз данных, каждая из которых содержит свои собственные коллекции;"
+}
+,{
+  question: "3)Что такое _id?",
+  answer: "Это уникальный идентификатор в рамках коллекции, который создаётся автоматически базой."
+}
+,{
+  question: "4)Какие типы данных есть в MongoDB?",
+  answer: "В MongoDB существуют следующие типы данных:Строка<br>Число<br>Число с точкой<br>Массив<br>Дата<br>Boolean"
+}
+,{
+  question: "5)Как можно выбирать данные?",
+  answer: "В MongoDB можно выбирать данные с помощью команд:db.c.find({},{})иdb.c.findOne({},{})В первом объекте мы передаём те поля по которым будет производится поиск:db.c.find({name:'12345'})"
+}
+,{
+  question: "6)Опишите основные опции поиска.",
+  answer: "В методахdb.c.find({},{})иdb.c.findOne({},{})Есть второй объект, который мы передаём, и там мы указываем, какие поля мы хотим видеть в результате:db.c.find({},{name:true})Значением может быть и число(0, 1) и значение boolean(true, false), лучше boolean, тк это более наглядно"
+}
+,{
+  question: "7)Как можно вставлять данные?",
+  answer: "Вставка – основной метод добавления данных в MongoDB. Чтобы вставить один документ, используйте метод коллекции insertOne:db.movies.insertOne({'title' : 'Stand by Me'})insertOne добавит в документ ключ '_id' (если вы его не предоставили) и сохранит документ в MongoDBЕсли вам нужно вставить несколько документов в коллекцию, можно использовать метод insertMany. Этот метод позволяет передавать массив документов в базу данных, что гораздо более эффективно, потому что ваш код не будет бегать в базу данных и обратно ради каждого документа, а вставит их все сразу.db.movies.insertMany([<br>... {'_id' : 0, 'title' : 'Top Gun'},<br>... {'_id' : 1, 'title' : 'Back to the Future'},<br>... {'_id' : 2, 'title' : 'Gremlins'},<br>... {'_id' : 3, 'title' : 'Aliens'}])"
+}
+,{
+  question: "8)Как можно изменять данные?",
+  answer: "После сохранения документа в базе данных его можно изменить с помощью одного из нескольких методов обновления: updateOne, updateMany и replaceOne. Методы updateOne и updateMany принимают документ фильтра<br>в качестве первого параметра и документ модификатора, описывающий изменения, которые необходимо внести, в качестве второго параметра.<br>Метод replaceOne также принимает фильтр в качестве первого параметра, а в качестве второго параметра ожидает документ, которым он заменит<br>документ, соответствующий фильтру.<br>Обновление документа является атомарным: если два обновления происходят одновременно, будет применено то из них, которое достигнет сервера первым, а затем будет применено следующее.db.analytics.updateOne({'url' : 'www.example.com'})db.analytics.updateMany({'url' : 'www.example.com'})"
+}
+,{
+  question: "9)Опишите основные опции изменения.",
+  answer: "$inc - увеличение значения на 1db.analytics.updateOne({'url' : 'www.example.com'},<br>... {'$inc' : {'pageviews' : 1}})Модификатор '$set' устанавливает значение поля. Если поле еще не существует, оно будет создано.db.users.updateOne({'_id' : ObjectId('4b253b067525f35f94b60a31')},<br>... {'$set' : {'favorite book' : 'War and Peace'}})Добавление элементов. Оператор '$push' добавляет элементы в конец массива, если массив существует, и создает новый массив, если его нет.Вы можете сдвинуть несколько значений за одну операцию, используя модификатор '$each' для оператора '$push'db.stock.ticker.updateOne({'_id' : 'GOOG'},<br>... {'$push' : {'hourly' : {'$each' : [562.776, 562.790, 559.123]}}})Если вы хотите, чтобы массив увеличивался до определенной длины, вы можете использовать модификатор '$slice' с '$push', чтобы предотвратить рост массива выше определенного размераdb.movies.updateOne({'genre' : 'horror'},<br>... {'$push' : {'top10' : {'$each' : ['Nightmare on Elm Street', 'Saw'],<br>... '$slice' : -10}}})Наконец, можно применять модификатор '$sort' к операциям с '$push'перед усечением:db.movies.updateOne({'genre' : 'horror'},<br>... {'$push' : {'top10' : {'$each' : [{'name' : 'Nightmare on Elm Street',<br>... 'rating' : 6.6},<br>... {'name' : 'Saw', 'rating' : 4.3}],<br>... '$slice' : -10,<br>... '$sort' : {'rating' : -1}}}})$addToSet - добавить элемент в массивdb.users.updateOne({'_id' : ObjectId('4b2d75476cc613d5ee930164')},<br>... {'$addToSet' : {'emails' : 'joe@gmail.com'}})Если вы хотите рассматривать массив как очередь или стек,<br>можно использовать оператор '$pop', который может удалять элементы с<br>любого конца. {'$pop' : {'key' : 1}} удаляет элемент из конца массива.<br>{'$pop' : {'key' : -1}} удаляет его с начала.Оператор '$pull' используется для<br>удаления элементов массива, соответствующих заданным критериям."
+}
+,{
+  question: "10)Логические операторы в MongoDb",
+  answer: "$and: Выполняет операцию обновления, если все указанные условия истинны.db.collection.updateMany(<br>{ $and: [ { status: 'active' }, { quantity: { $gt: 0 } } ] },<br>{ $set: { inStock: true } }<br>)<br>$or: Выполняет операцию обновления, если хотя бы одно из указанных условий истинно.db.collection.updateMany(<br>{ $or: [ { status: 'active' }, { quantity: { $gt: 10 } } ] },<br>{ $set: { promotion: true } }<br>)<br>$not: Выполняет операцию обновления, если указанное условие не истинно.db.collection.updateMany(<br>{ price: { $not: { $gt: 100 } } },<br>{ $set: { discounted: true } }<br>)<br>$nor: Выполняет операцию обновления, если ни одно из указанных условий не истинно.db.collection.updateMany(<br>{ $nor: [ { status: 'inactive' }, { quantity: { $lte: 0 } } ] },<br>{ $set: { visible: true } }<br>)<br>$exists: Выполняет операцию обновления, если указанное поле существует (или не существует, в зависимости от значения).db.collection.updateMany(<br>{ tags: { $exists: false } },<br>{ $set: { tags: [] } }<br>)$ne: Выполняет операцию обновления, если значение поля не равно указанному значению.db.collection.updateMany(<br>{ price: { $ne: 0 } },<br>{ $set: { available: true } }<br>)<br>$eq: Выполняет операцию обновления, если значение поля равно указанному значению. Обратите внимание, что это оператор по умолчанию, если не указан другой оператор сравнения.db.collection.updateMany(<br>{ status: { $eq: 'active' } },<br>{ $set: { available: true } }<br>)<br>$gt: Выполняет операцию обновления, если значение поля больше указанного значения.db.collection.updateMany(<br>{ quantity: { $gt: 100 } },<br>{ $set: { inStock: true } }<br>)<br>$gte: Выполняет операцию обновления, если значение поля больше или равно указанному значению.db.collection.updateMany(<br>{ quantity: { $gte: 50 } },<br>{ $set: { inStock: true } }<br>)<br>$lt: Выполняет операцию обновления, если значение поля меньше указанного значения.db.collection.updateMany(<br>{ price: { $lt: 10 } },<br>{ $set: { cheap: true } }<br>)<br>$lte: Выполняет операцию обновления, если значение поля меньше или равно указанному значению.db.collection.updateMany(<br>{ price: { $lte: 20 } },<br>{ $set: { affordable: true } }<br>)<br>"
+}
+,{
+  question: "11)Как можно удалять данны?",
+  answer: "Теперь, когда в нашей базе данных есть данные, давайте удалим их. Для этой цели CRUD API предоставляет методы deleteOne и deleteMany. Оба этих метода принимают документ фильтра в качестве первого параметра.<br>Фильтр задает набор критериев для сопоставления при удалении документов.db.movies.deleteOne({'_id' : 4})db.movies.deleteMany({'year' : 1984})Удаление документов обычно является довольно быстрой операцией. Однако если вы хотите очистить всю коллекцию, ее быстрее удалить с помощью метода drop:db.movies.drop()"
+}
+,{
+  question: "12)Что такое курсоры в MongoDb?",
+  answer: "База данных возвращает результаты из метода find, используя курсор.<br>Реализация курсоров на стороне клиента, как правило, позволяет в значительной степени контролировать конечный результат запроса. Вы можете ограничить количество результатов, пропустить некоторое количество<br>результатов, отсортировать результаты по любой комбинации клавиш в<br>любом направлении и выполнить ряд других мощных операций."
+}
+,{
+  question: "13)Опишите дополнительные ограничения в поиске в MongoDB.",
+  answer: "Наиболее распространенные параметры запроса – ограничение количества возвращаемых результатов, пропуск количества результатов и сортировка. Все эти параметры должны быть добавлены до отправки запроса<br>в базу данныхЧтобы установить предел, включите в свой вызов метода find функцию<br>limit. Например, чтобы вернуть только три результата, используйте этоdb.c.find().limit(3)Если в коллекции меньше трех документов, соответствующих вашему запросу, будет возвращено только количество совпадающих документов; <br>функция limit устанавливает верхний предел, а не нижний.<br>Функция skip работает похожим образом:db.c.find().skip(3)Функция sort принимает объект: набор пар типа «ключ/значение», где<br>ключи – это имена ключей, а значения – направления сортировки. Направление сортировки может быть 1 (по возрастанию) или –1 (по убыванию).db.c.find().sort({username : 1, age : -1})"
+}
+,{
+  question: "14)Что такое индексы в MongoDb?",
+  answer: "Индекс базы данных похож на указатель книги. Вместо того чтобы просматривать всю книгу, СУБД использует ярлык и просто просматривает упорядоченный список со ссылками на содержимое. Это позволяет MongoDB выполнять запросы на порядок быстрее.<br>Запрос, который не использует индекс, называется сканированием коллекции. Это означает, что сервер должен «просмотреть всю книгу», чтобы найти результаты запроса. Этот процесс в основном представляет собой<br>то, что вы делали бы, если бы искали информацию в книге, где нет оглавления: вы бы начали с первой страницы и прочитали все это целиком.<br>В целом не нужно заставлять сервер выполнять сканирование коллекций, поскольку в случае с большими коллекциями этот процесс будет очень медленным"
+}
+,{
+  question: "15)Как создать индексы?",
+  answer: "Теперь давайте попробуем создать индекс по полю 'username'. Для создания индекса мы будем использовать метод коллекции createIndex(1 - asc, -1 - desc):db.users.createIndex({'username' : 1})Также можно создавать составные индексыdb.users.createIndex({'age' : 1, 'username' : 1})Мы могли бы поместить индекс в одно из вложенных полей 'loc', скажем 'loc.city', чтобы ускорить запросы, использующие это поле:<br>db.users.createIndex({'loc.city' : 1})Вы также можете индексировать массивы, что позволяет использовать<br>индекс для эффективного поиска определенных элементов массива.db.blog.createIndex({'comments.date' : 1})"
+}
+,{
+  question: "16)Как MongoDB выбирает индекс?",
+  answer: "Представим, что у нас есть пять индексов. Когда приходит запрос, MongoDB смотрит на форму запроса. Форма связана с тем, в каких полях производится поиск, и дополнительной информацией, такой как наличие или отсутствие сортировки. Основываясь на этой информации,<br>система идентифицирует набор индексов-кандидатов, которые она может использовать при удовлетворении запроса<br>Предположим, мы получили запрос, и три из пяти наших индексов определены как кандидаты на этот запрос. Затем MongoDB создаст три плана<br>запросов, по одному для каждого из этих индексов, и выполнит запрос в трех параллельных потоках, каждый из которых использует свой индекс.<br>Задача состоит в том, чтобы увидеть, какой из них способен быстрее вернуть результаты.<br>Визуально можно рассматривать это как гонку, как показано на рис. 5.1. Идея заключается в том, что первым планом выполнения запроса для<br>достижения целевого состояния является победитель. Но что еще более важно, в дальнейшем он будет выбран в качестве индекса для запросов,<br>которые имеют ту же форму запроса. Планы состязаются друг с другом на протяжении некоего периода (называемого пробным периодом), после которого результаты каждой гонки используются для расчета общего плана выигрыша."
+}
+,{
+  question: "17)Типы индексов",
+  answer: "Уникальные индексы гарантируют, что каждое значение будет отображаться в индексе не более одного раза.db.users.createIndex({'firstname': 1},<br>... {'unique': true,'partialFilterExpression': {<br>'firstname': {$exists: true } } }Частичные индексы - Если у вас есть поле, которое может или не может существовать, но должно быть уникальным, когда оно существует, можно сочетать параметры «unique' и 'partial'.db.users.ensureIndex({'email' : 1}, {'unique' : true, 'partialFilterExpression' :<br>... { email: { $exists: true } }})Текстовый индексdb.blog.createIndex({'post' : 'text'})"
+}
+,{
+  question: "18)Какая команда позволит посмотреть запрос в MongoDb?",
+  answer: "сли мы выполняем запрос к этой коллекции, то можем использовать<br>команду explain, чтобы увидеть, что делает MongoDB при выполнении запроса. Предпочтительнее использовать команду explain через вспомогательный метод курсора, который обертывает эту команду. Метод курсора<br>explain предоставляет информацию о выполнении различных CRUD-операций. Этот метод может быть запущен в нескольких режимах детализации. Мы рассмотрим режим executionStats, поскольку это помогает нам<br>понять эффект использования индекса для удовлетворения запросов.db.users.find({'username': 'user101'}).explain('executionStats')"
+}
+,{
+  question: "19)Что такое aggregate в MongoDb?",
+  answer: "Фреймворк агрегации представляет собой набор аналитических инструментов, которые позволяют работать с документами в одной или нескольких коллекциях.<br>Он основан на концепции конвейера. С помощью конвейера агрегации<br>мы берем входные данные из коллекции MongoDB и пропускаем документы из этой коллекции через один или несколько этапов, каждый из которых выполняет свою операцию (рис. 7.1). Каждый этап рассматривается в<br>качестве входных данных, независимо от этапа, прежде чем будут созданы<br>выходные данные. Входные и выходные данные всех этапов – это документы, поток документов, если хотите.aggregate- Это метод, который мы вызываем, когда хотим выполнить запрос на агрегацию.<br>Для того чтобы осуществить агрегацию, мы переходим в конвейер агрегации. Конвейер – это массив с документами в качестве элементов."
+}
+,{
+  question: "20)Опишите основные дополнения aggregate.",
+  answer: "$match - фильтрацияdb.companies.aggregate([<br>{$match: {founded_year: 2004}},<br>])$project - уменьшает выдаваемый объект до тех полей, которые мы указалиdb.companies.aggregate([<br>{$match: {founded_year: 2004}},<br>{$project: {<br>_id: 0,<br>name: 1,<br>founded_year: 1<br>}<br>}<br>])$limit - уменьшает количество объектов до этого значения.$sort - сортировка$skip - пропуск значенийПри работе с полями массива в конвейере агрегации часто возникает необходимость использовать один или несколько этапов с использованием<br>оператора $unwind. Это позволяет нам производить вывод таким образом,<br>что для каждого элемента в указанном поле массива имеется один выходной документ.db.companies.aggregate([<br>{ $match: { 'funding_rounds.investments.financial_org.permalink':<br>'greylock' } },<br>{ $unwind: '$funding_rounds'<br>},<br>{ $project: {<br>_id: 0,<br>name: 1,<br>amount: '$funding_rounds.raised_amount',<br>year: '$funding_rounds.funded_year'<br>}<br>}<br>])$filter: в $project - Оператор $filter предназначен для работы с полями массива и определяет параметры, которые<br>мы должны предоставить.db.companies.aggregate([<br>{ $match: { 'funding_rounds.investments.financial_org.permalink': 'greylock' } },<br>{ $project: {<br>_id: 0,<br>name: 1,<br>founded_year: 1,<br>rounds: { $filter: {<br>input: '$funding_rounds',<br>as: 'round',<br>cond: { $gte: [<br>'$$round.raised_amount',<br>100000000 ]<br>}<br>}<br>}<br>}<br>},<br>{ $match: { 'rounds.investments.financial_org.permalink': 'greylock' } },<br>]).pretty()Оператор $arrayElemAt позволяет выбрать элемент в определенной ячейке массиваdb.companies.aggregate([<br>{ $match: { 'founded_year': 2010 } },<br>{ $project: {<br>_id: 0,<br>name: 1,<br>founded_year: 1,<br>first_round: { $arrayElemAt: [ '$funding_rounds', 0 ] },<br>last_round: { $arrayElemAt: [ '$funding_rounds', -1 ] }<br>} }<br>]).pretty()$group: - группировка b.companies.aggregate([<br>{ $group: {<br>_id: { founded_year: '$founded_year' },<br>average_number_of_employees: { $avg: '$number_of_employees' }<br>} }])"
+}
+,{
+  question: "21)Что такое шардинг?",
+  answer: "Шардинг обозначает процесс распределения данных по разным серверам;<br>для описания этой концепции также иногда используется термин разделение. Размещая подмножество данных на каждой машине, становится возможным хранить больше данных и обрабатывать б?льшую нагрузку, без<br>необходимости наличия больших или более мощных машин – достаточно<br>просто б?льшего количества менее мощных компьютеров.<br>"
+}
+,{
+  question: "22)Как добавить шардинг в MongoDb ",
+  answer: "sh.enableSharding('accounts')sh.shardCollection('accounts.users', {'username' : 1})"
+}
+,{
+  question: "23)Преимущества MongoDB над Реляционными базами",
+  answer: "MongoDB предлагает несколько преимуществ перед реляционными базами данных:Гибкая схема данных: MongoDB использует гибкую схему данных в формате JSON-подобных документов, что позволяет легко изменять структуру данных без необходимости изменения схемы базы данных.Горизонтальное масштабирование: MongoDB обеспечивает возможность горизонтального масштабирования, что позволяет расширять базу данных по мере роста нагрузки, добавляя новые узлы в кластер.Высокая производительность: MongoDB обеспечивает высокую производительность при обработке больших объемов данных благодаря использованию денормализации данных и индексации.Поддержка гибридных структур данных: MongoDB позволяет хранить сложные структуры данных, включая вложенные документы и массивы, что упрощает моделирование данных с использованием объектно-ориентированного подхода.Гибкий язык запросов: MongoDB предоставляет мощный язык запросов, включая возможность использования агрегаций, индексов и геопространственных запросов для эффективного извлечения данных.Поддержка многих языков программирования: MongoDB имеет богатое экосистемное сообщество и поддерживает множество языков программирования, что делает его легко интегрируемым с различными технологиями и платформами."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

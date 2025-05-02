@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое Stream?",
+  answer: "Интерфейс java.util.Stream представляет собой последовательность элементов, над которой можно производить различные операции.<br>Операции над стримами бывают или промежуточными (intermediate) или конечными (terminal). Конечные операции возвращают результат определенного типа, а промежуточные операции возвращают тот же стрим. Таким образом вы можете строить цепочки из несколько операций над одним и тем же стримом.<br>У стрима может быть сколько угодно вызовов промежуточных операций и последним вызов конечной операции. При этом все промежуточные операции выполняются лениво и пока не будет вызвана конечная операция никаких действий на самом деле не происходит (похоже на создание объекта Thread или Runnable, без вызова start()).<br>Стримы создаются на основе каких-либо источников, например классов из java.util.Collection.<br>Ассоциативные массивы (maps), например, HashMap, не поддерживаются.<br>Операции над стримами могут выполняться как последовательно, так и параллельно.<br>Потоки не могут быть использованы повторно. Как только была вызвана какая-нибудь конечная операция, поток закрывается.<br>Кроме универсальных объектных существуют особые виды стримов для работы с примитивными типами данных int, long и double: IntStream, LongStream и DoubleStream. Эти примитивные стримы работают так же, как и обычные объектные, но со следующими отличиями:<br>- используют специализированные лямбда-выражения, например, IntFunction или IntPredicate вместо Function и Predicate;<br>- поддерживают дополнительные конечные операции sum(), average(), mapToObj().<br>"
+}
+,{
+  question: "Какие существуют способы создания стрима?",
+  answer: "Из коллекции:<br>Stream<String> fromCollection = Arrays.asList('x', 'y', 'z').stream();<br>Из набора значений:<br>Stream<String> fromValues = Stream.of('x', 'y', 'z');<br>Из массива:<br>Stream<String> fromArray = Arrays.stream(new String[]{'x', 'y', 'z'});<br>Из файла (каждая строка в файле будет отдельным элементом в стриме):<br>Stream<String> fromFile = Files.lines(Paths.get('input.txt'));<br>Из строки:<br>IntStream fromString = '0123456789'.chars();<br>С помощью Stream.builder():<br>Stream<String> fromBuilder = Stream.builder().add('z').add('y').add('z').build();<br>С помощью Stream.iterate() (бесконечный):<br>Stream<Integer> fromIterate = Stream.iterate(1, n -> n + 1);<br>С помощью Stream.generate() (бесконечный):<br>Stream<String> fromGenerate = Stream.generate(() -> '0');<br>"
+}
+,{
+  question: "В чем разница между Collection и Stream?",
+  answer: "Коллекции позволяют работать с элементами по-отдельности, тогда как стримы так делать не позволяют, но вместо этого предоставляют возможность выполнять функции над данными как над одним целым.<br>Также стоит отметить важность самой концепции сущностей: Collection - это прежде всего воплощение Структуры Данных. Например, Set не просто хранит в себе элементы, он реализует идею множества с уникальными элементами, тогда как Stream, это прежде всего абстракция необходимая для реализации конвейера вычислений, собственно, поэтому, результатом работы конвейера являются те или иные Структуры Данных или же результаты проверок/поиска и т.п.<br>"
+}
+,{
+  question: "Для чего нужен метод collect() в стримах?",
+  answer: "Метод collect() является конечной операцией, которая используется для представление результата в виде коллекции или какой-либо другой структуры данных.<br>collect() принимает на вход Collector<Тип_источника, Тип_аккумулятора, Тип_результата>, который содержит четыре этапа: supplier - инициализация аккумулятора, accumulator - обработка каждого элемента, combiner - соединение двух аккумуляторов при параллельном выполнении, [finisher] - необязательный метод последней обработки аккумулятора. В Java 8 в классе Collectors реализовано несколько распространённых коллекторов:<br>toList(), toCollection(), toSet() - представляют стрим в виде списка, коллекции или множества;<br>toConcurrentMap(), toMap() - позволяют преобразовать стрим в Map;<br>averagingInt(), averagingDouble(), averagingLong() - возвращают среднее значение;<br>summingInt(), summingDouble(), summingLong() - возвращает сумму;<br>summarizingInt(), summarizingDouble(), summarizingLong() - возвращают SummaryStatistics с разными агрегатными значениями;<br>partitioningBy() - разделяет коллекцию на две части по соответствию условию и возвращает их как Map<Boolean, List>;<br>groupingBy() - разделяет коллекцию на несколько частей и возвращает Map<N, List<T>>;<br>mapping() - дополнительные преобразования значений для сложных Collector-ов.<br>Так же существует возможность создания собственного коллектора через Collector.of():Collector<String, List<String>, List<String>> toList = Collector.of( ArrayList::new, List::add, (l1, l2) -> { l1.addAll(l2); return l1; } );"
+}
+,{
+  question: "Расскажите о параллельной обработке в Java 8.",
+  answer: "Стримы могут быть последовательными и параллельными. Операции над последовательными стримами выполняются в одном потоке процессора, над параллельными — используя несколько потоков процессора. Параллельные стримы используют общий ForkJoinPool доступный через статический ForkJoinPool.commonPool() метод. При этом, если окружение не является многоядерным, то поток будет выполняться как последовательный. Фактически применение параллельных стримов сводится к тому, что данные в стримах будут разделены на части, каждая часть обрабатывается на отдельном ядре процессора, и в конце эти части соединяются, и над ними выполняются конечные операции.<br>Для создания параллельного потока из коллекции можно также использовать метод parallelStream() интерфейса Collection.<br>Чтобы сделать обычный последовательный стрим параллельным, надо вызвать у объекта Stream метод parallel(). Метод isParallel() позволяет узнать является ли стрим параллельным.<br>С помощью, методов parallel() и sequential() можно определять какие операции могут быть параллельными, а какие только последовательными. Так же из любого последовательного стрима можно сделать параллельный и наоборот:collection .<br>stream()<br>.peek(...) // операция последовательна<br>.parallel()<br>.map(...) // операция может выполняться параллельно, .sequential()<br>.reduce(...) // операция снова<br>последовательнаКак правило, элементы передаются в стрим в том же порядке, в котором они определены в источнике данных. При работе с параллельными стримами система сохраняет порядок следования элементов. Исключение составляет метод forEach(), который может выводить элементы в произвольном порядке. И чтобы сохранить порядок следования, необходимо применять метод forEachOrdered().Критерии, которые могут повлиять на производительность в параллельных стримах:<br>- Размер данных - чем больше данных, тем сложнее сначала разделять данные, а потом их соединять.<br>- Количество ядер процессора. Теоретически, чем больше ядер в компьютере, тем быстрее программа будет работать. Если на машине одно ядро, нет смысла применять параллельные потоки.<br>- Чем проще структура данных, с которой работает поток, тем быстрее будут происходить операции. Например, данные из ArrayList легко использовать, так как структура данной коллекции предполагает последовательность несвязанных данных. А вот коллекция типа LinkedList - не лучший вариант, так как в последовательном списке все элементы связаны с предыдущими/последующими. И такие данные трудно распараллелить.<br>- Над данными примитивных типов операции будут производиться быстрее, чем над объектами классов.<br>- Крайне не рекомендуется использовать параллельные стримы для скольких-нибудь долгих операций (например, сетевых соединений), так как все параллельные стримы работают c одним ForkJoinPool, то такие долгие операции могут остановить работу всех параллельных стримов в JVM из-за отсутствия доступных потоков в пуле, т.е. параллельные стримы стоит использовать лишь для коротких операций, где счет идет на миллисекунды, но не для тех где счет может идти на секунды и минуты;<br>- Сохранение порядка в параллельных стримах увеличивает издержки при выполнении и если порядок не важен, то имеется возможность отключить его сохранение и тем самым увеличить производительность, использовав промежуточную<br>  операцию unordered():collection.parallelStream()<br>.sorted()<br>.unordered() .collect(Collectors.toList());<br>"
+}
+,{
+  question: "Какие конечные методы работы со стримами вы знаете?",
+  answer: "findFirst() возвращает первый элемент;<br>findAny() возвращает любой подходящий элемент;<br>collect() представление результатов в виде коллекций и других структур данных;<br>count() возвращает количество элементов;<br>anyMatch() возвращает true, если условие выполняется хотя бы для одного элемента;<br>noneMatch() возвращает true, если условие не выполняется ни для одного элемента;<br>allMatch() возвращает true, если условие выполняется для всех элементов;<br>min() возвращает минимальный элемент, используя в качестве условия Comparator;<br>max() возвращает максимальный элемент, используя в качестве условия Comparator;<br>forEach() применяет функцию к каждому объекту (порядок при параллельном выполнении не гарантируется);<br>forEachOrdered() применяет функцию к каждому объекту с сохранением порядка элементов;<br>toArray() возвращает массив значений;<br>reduce()позволяет выполнять агрегатные функции и возвращать один результат.<br>Для числовых стримов дополнительно доступны:<br>sum() возвращает сумму всех чисел;<br>average() возвращает среднее арифметическое всех чисел.<br>"
+}
+,{
+  question: "Какие промежуточные методы работы со стримами вы знаете?",
+  answer: "filter() отфильтровывает записи, возвращая только записи, соответствующие условию;<br>skip() позволяет пропустить определённое количество элементов в начале;<br>distinct() возвращает стрим без дубликатов (для метода equals());<br>map() преобразует каждый элемент;<br>peek() возвращает тот же стрим, применяя к каждому элементу функцию;<br>limit() позволяет ограничить выборку определенным количеством первых элементов;<br>sorted() позволяет сортировать значения либо в натуральном порядке, либо задавая Comparator;<br>mapToInt(), mapToDouble(), mapToLong() - аналоги map() возвращающие стрим числовых примитивов;<br>flatMap(), flatMapToInt(), flatMapToDouble(), flatMapToLong() - похожи на map(), но могут создавать из одного элемента несколько.<br>Для числовых стримов дополнительно доступен метод mapToObj(), который преобразует числовой стрим обратно в объектный.<br>"
+}
+,{
+  question: "Как вывести на экран 10 случайных чисел, используя forEach()",
+  answer: "(new Random()) .ints() .limit(10) .forEach(System.out::println"
+}
+,{
+  question: "Как можно вывести на экран уникальные квадраты чисел используя метод map()?",
+  answer: "Stream .of(1, 2, 3, 2, 1) .map(s -> s * s) .distinct() .forEach(System.out::println);"
+}
+,{
+  question: "Как вывести на экран количество пустых строк с помощью метода filter()?",
+  answer: "System.out.println( Stream .of('Hello', '', ', ', 'world', '!') .filter(String::isEmpty) .count());"
+}
+,{
+  question: "Как вывести на экран 10 случайных чисел в порядке возрастания?",
+  answer: "(new Random()) .ints() .limit(10) .sorted() .forEach(System.out::println);"
+}
+,{
+  question: "Как найти максимальное число в наборе?",
+  answer: "Stream .of(5, 3, 4, 55, 2) .mapToInt(a -> a) .max() .getAsInt(); //55"
+}
+,{
+  question: "Как найти минимальное число в наборе",
+  answer: "Stream .of(5, 3, 4, 55, 2) .mapToInt(a -> a) .min() .getAsInt(); //2"
+}
+,{
+  question: "Как получить сумму всех чисел в наборе?",
+  answer: "Stream .of(5, 3, 4, 55, 2) .mapToInt() .sum(); //69"
+}
+,{
+  question: "Как получить среднее значение всех чисел?",
+  answer: "Stream .of(5, 3, 4, 55, 2) .mapToInt(a -> a) .average() .getAsDouble(); //13.8"
+}
+,{
+  question: "Какие дополнительные методы для работы с ассоциативными массивами (maps) появились в Java 8?",
+  answer: "- putIfAbsent() добавляет пару «ключ-значение», только если ключ отсутствовал:<br>  map.putIfAbsent('a', 'Aa');<br>- forEach() принимает функцию, которая производит операцию над каждым элементом:<br>  map.forEach((k, v) -> System.out.println(v));<br>- compute() создаёт или обновляет текущее значение на полученное в результате вычисления (возможно использовать ключ и текущее значение):<br>  map.compute('a', (k, v) -> String.valueOf(k).concat(v)); //['a', 'aAa']<br>- computeIfPresent() если ключ существует, обновляет текущее значение на полученное в результате вычисления (возможно использовать ключ и текущее значение):<br>  map.computeIfPresent('a', (k, v) -> k.concat(v));<br>- computeIfAbsent() если ключ отсутствует, создаёт его со значением, которое вычисляется (возможно использовать ключ):<br>  map.computeIfAbsent('a', k -> 'A'.concat(k)); //['a','Aa']<br>- getOrDefault() в случае отсутствия ключа, возвращает переданное значение по-умолчанию:<br>  map.getOrDefault('a', 'not found');<br>- merge() принимает ключ, значение и функцию, которая объединяет передаваемое и текущее значения. Если под заданным ключем значение отсутствует, то записывает туда передаваемое значение.<br>  map.merge('a', 'z', (value, newValue) -> value.concat(newValue)); //['a','Aaz']<br>"
+}
+,{
+  question: "empty()",
+  answer: "Стрим, как и коллекция, может быть пустым, а значит всем последующем операторам нечего будет обрабатывать.<br>Stream.empty()<br>.forEach(System.out::println);<br>// Вывода нет<br>"
+}
+,{
+  question: "of(T value)of(T... values)",
+  answer: "Стрим для одного или нескольких перечисленных элементов. Очень часто вижу, что используют такую конструкцию:Arrays.asList(1, 2, 3).stream()<br>.forEach(System.out::println);однако она излишня. Вот так проще:Stream.of(1, 2, 3)<br>.forEach(System.out::println);<br>"
+}
+,{
+  question: "ofNullable(T t)",
+  answer: "Появился в Java 9. Возвращает пустой стрим, если в качестве аргумента передан null, в противном случае, возвращает стрим из одного элемента.String str = Math.random() > 0.5 ? 'I'm feeling lucky' : null;<br>Stream.ofNullable(str)<br>.forEach(System.out::println);<br>"
+}
+,{
+  question: "generate(Supplier s)",
+  answer: "Возвращает стрим с бесконечной последовательностью элементов, генерируемых функцией Supplier s.Stream.generate(() -> 6)<br>.limit(6)<br>.forEach(System.out::println);<br>"
+}
+,{
+  question: "iterate(T seed, UnaryOperator f)",
+  answer: "Возвращает бесконечный стрим с элементами, которые образуются в результате последовательного применения функции f к итерируемому значению. Первым элементом будет seed, затем f(seed), затем f(f(seed)) и так далее.Stream.iterate(2, x -> x + 6)<br>.limit(6)<br>.forEach(System.out::println);<br>// 2, 8, 14, 20, 26, 32<br>"
+}
+,{
+  question: "iterate(T seed, Predicate hasNext, UnaryOperator f)",
+  answer: "Появился в Java 9. Всё то же самое, только добавляется ещё один аргумент hasNext: если он возвращает false, то стрим завершается. Это очень похоже на цикл for:for (i = seed; hasNext(i); i = f(i)) {<br>}Таким образом, с помощью iterate теперь можно создать конечный стрим.Stream.iterate(2, x -> x < 25, x -> x + 6)<br>.forEach(System.out::println);<br>// 2, 8, 14, 20<br>"
+}
+,{
+  question: "concat(Stream a, Stream b)",
+  answer: "Объединяет два стрима так, что вначале идут элементы стрима A, а по его окончанию последуют элементы стрима B.Stream.concat(<br>Stream.of(1, 2, 3),<br>Stream.of(4, 5, 6))<br>.forEach(System.out::println);<br>// 1, 2, 3, 4, 5, 6<br>"
+}
+,{
+  question: "builder()",
+  answer: "Создаёт мутабельный объект для добавления элементов в стрим без использования какого-либо контейнера для этого.Stream.Builder<Integer> streamBuider = Stream.<Integer>builder()<br>.add(0)<br>.add(1);<br>for (int i = 2; i <= 8; i += 2) {<br>streamBuider.accept(i);<br>}streamBuider<br>.add(9)<br>.add(10)<br>.build()<br>.forEach(System.out::println);<br>// 0, 1, 2, 4, 6, 8, 9, 10<br>"
+}
+,{
+  question: "IntStream.range(int startInclusive, int endExclusive)LongStream.range(long startInclusive, long endExclusive)",
+  answer: "Создаёт стрим из числового промежутка [start..end), то есть от start (включительно) по end.IntStream.range(0, 10)<br>.forEach(System.out::println);<br>// 0, 1, 2, 3, 4, 5, 6, 7, 8, 9LongStream.range(-10L, -5L)<br>.forEach(System.out::println);<br>// -10, -9, -8, -7, -6<br>"
+}
+,{
+  question: "IntStream.rangeClosed(int startInclusive, int endInclusive)LongStream.rangeClosed(long startInclusive, long endInclusive)",
+  answer: "Создаёт стрим из числового промежутка [start..end], то есть от start (включительно) по end (включительно).IntStream.rangeClosed(0, 5)<br>.forEach(System.out::println);<br>// 0, 1, 2, 3, 4, 5<br>LongStream.range(-8L, -5L)<br>.forEach(System.out::println);<br>// -8, -7, -6, -5<br>"
+}
+,{
+  question: "Промежуточный оператор filter(Predicate predicate)",
+  answer: "Фильтрует стрим, принимая только те элементы, которые удовлетворяют заданному условию.Stream.of(1, 2, 3)<br>.filter(x -> x == 10)<br>.forEach(System.out::print);<br>// Вывода нет, так как после фильтрации стрим станет пустым<br>Stream.of(120, 410, 85, 32, 314, 12)<br>.filter(x -> x > 100)<br>.forEach(System.out::println);<br>// 120, 410, 314<br>"
+}
+,{
+  question: "Промежуточный оператор map(Function mapper)",
+  answer: "Применяет функцию к каждому элементу и затем возвращает стрим, в котором элементами будут результаты функции. map можно применять для изменения типа элементов.Stream.mapToDouble(ToDoubleFunction mapper)<br>Stream.mapToInt(ToIntFunction mapper)<br>Stream.mapToLong(ToLongFunction mapper)<br>IntStream.mapToObj(IntFunction mapper)<br>IntStream.mapToLong(IntToLongFunction mapper)<br>IntStream.mapToDouble(IntToDoubleFunction mapper)Специальные операторы для преобразования объектного стрима в примитивный, примитивного в объектный, либо примитивного стрима одного типа в примитивный стрим другого.Stream.of('3', '4', '5')<br>.map(Integer::parseInt)<br>.map(x -> x + 10)<br>.forEach(System.out::println);<br>// 13, 14, 15Stream.of(120, 410, 85, 32, 314, 12)<br>.map(x -> x + 11)<br>.forEach(System.out::println);<br>// 131, 421, 96, 43, 325, 23<br>"
+}
+,{
+  question: "Промежуточный оператор flatMap(Function<T, Stream<R>> mapper)",
+  answer: "Один из самых интересных операторов. Работает как map, но с одним отличием — можно преобразовать один элемент в ноль, один или множество других.flatMapToDouble(Function mapper)<br>flatMapToInt(Function mapper)<br>flatMapToLong(Function mapper)Как и в случае с map, служат для преобразования в примитивный стрим.Для того, чтобы один элемент преобразовать в ноль элементов, нужно вернуть null, либо пустой стрим. Чтобы преобразовать в один элемент, нужно вернуть стрим из одного элемента, например, через Stream.of(x). Для возвращения нескольких элементов, можно любыми способами создать стрим с этими элементами.Stream.of(2, 3, 0, 1, 3)<br>.flatMap(x -> IntStream.range(0, x))<br>.forEach(System.out::println);<br>// 0, 1, 0, 1, 2, 0, 0, 1, 2<br>"
+}
+,{
+  question: "Промежуточный оператор mapMulti(BiConsumer<T, Consumer<R>> mapper)",
+  answer: "Появился в Java 16. Этот оператор похож на flatMap, но использует императивный подход при работе. Теперь вместе с элементом стрима приходит ещё и Consumer, в который можно передать одно или несколько значений, либо не передавать вовсе.Stream.of(1, 2, 3, 4, 5, 6)<br>.mapMulti((x, consumer) -> {<br>if (x % 2 == 0) {<br>consumer.accept(-x);<br>consumer.accept(x);<br>}<br>})<br>.forEach(System.out::println);<br>// -2, 2, -4, 4, -6, 6<br>mapMultiToDouble(BiConsumer<T, DoubleConsumer> mapper)<br>mapMultiToInt(BiConsumer<T, IntConsumer> mapper)<br>mapMultiToLong(BiConsumer<T, LongConsumer> mapper)<br>"
+}
+,{
+  question: "Промежуточный оператор limit(long maxSize)",
+  answer: "Ограничивает стрим maxSize элементами.Stream.of(120, 410, 85, 32, 314, 12)<br>.limit(4)<br>.forEach(System.out::println);<br>"
+}
+,{
+  question: "Промежуточный оператор skip(long n)",
+  answer: "Пропускает n элементов стрима.Stream.of(5, 10)<br>.skip(40)<br>.forEach(System.out::println);<br>// Вывода нет<br>Stream.of(120, 410, 85, 32, 314, 12)<br>.skip(2)<br>.forEach(System.out::println);<br>// 85, 32, 314, 12<br>"
+}
+,{
+  question: "Промежуточный операторsorted()sorted(Comparator comparator)",
+  answer: "Сортирует элементы стрима. Причём работает этот оператор очень хитро: если стрим уже помечен как отсортированный, то сортировка проводиться не будет, иначе соберёт все элементы, отсортирует их и вернёт новый стрим, помеченный как отсортированный.IntStream.range(0, 100000000)<br>.sorted()<br>.limit(3)<br>.forEach(System.out::println);<br>// 0, 1, 2IntStream.concat(<br>IntStream.range(0, 100000000),<br>IntStream.of(-1, -2))<br>.sorted()<br>.limit(3)<br>.forEach(System.out::println);<br>// Exception in thread 'main' java.lang.OutOfMemoryError: Java heap spaceStream.of(120, 410, 85, 32, 314, 12)<br>.sorted()<br>.forEach(System.out::println);<br>// 12, 32, 85, 120, 314, 410<br>"
+}
+,{
+  question: "Промежуточный оператор distinct()",
+  answer: "Убирает повторяющиеся элементы и возвращаем стрим с уникальными элементами. Как и в случае с sorted, смотрит, состоит ли уже стрим из уникальных элементов и если это не так, отбирает уникальные и помечает стрим как содержащий уникальные элементы.Stream.of(2, 1, 8, 1, 3, 2)<br>.distinct()<br>.forEach(System.out::println);<br>// 2, 1, 8, 3<br>"
+}
+,{
+  question: "Промежуточный оператор peek(Consumer action)",
+  answer: "Выполняет действие над каждым элементом стрима и при этом возвращает стрим с элементами исходного стрима. Служит для того, чтобы передать элемент куда-нибудь, не разрывая при этом цепочку операторов (вы же помните, что forEach — терминальный оператор и после него стрим завершается?), либо для отладки.Stream.of(0, 3, 0, 0, 5)<br>.peek(x -> System.out.format('before distinct: %d%n', x))<br>.distinct()<br>.peek(x -> System.out.format('after distinct: %d%n', x))<br>.map(x -> x * x)<br>.forEach(x -> System.out.format('after map: %d%n', x));<br>"
+}
+,{
+  question: "Промежуточный оператор takeWhile(Predicate predicate)",
+  answer: "Появился в Java 9. Возвращает элементы до тех пор, пока они удовлетворяют условию, то есть функция-предикат возвращает true. Это как limit, только не с числом, а с условием.Stream.of(1, 2, 3, 4, 2, 5)<br>.takeWhile(x -> x < 3)<br>.forEach(System.out::println);<br>// 1, 2<br>"
+}
+,{
+  question: "Промежуточный оператор dropWhile(Predicate predicate)",
+  answer: "Появился в Java 9. Пропускает элементы до тех пор, пока они удовлетворяют условию, затем возвращает оставшуюся часть стрима. Если предикат вернул для первого элемента false, то ни единого элемента не будет пропущено. Оператор подобен skip, только работает по условию.Stream.of(1, 2, 3, 4, 2, 5)<br>.dropWhile(x -> x >= 3)<br>.forEach(System.out::println);<br>// 1, 2, 3, 4, 2, 5Stream.of(1, 2, 3, 4, 2, 5)<br>.dropWhile(x -> x < 3)<br>.forEach(System.out::println);<br>// 3, 4, 2, 5<br>"
+}
+,{
+  question: "Промежуточный оператор boxed()",
+  answer: "Преобразует примитивный стрим в объектный.DoubleStream.of(0.1, Math.PI)<br>.boxed()<br>.map(Object::getClass)<br>.forEach(System.out::println);<br>"
+}
+,{
+  question: "Терминальный оператор void forEach(Consumer action)",
+  answer: "Выполняет указанное действие для каждого элемента стрима.Stream.of(120, 410, 85, 32, 314, 12)<br>.forEach(x -> System.out.format('%s, ', x));<br>"
+}
+,{
+  question: "Терминальный оператор void forEachOrdered(Consumer action)",
+  answer: "Выполняет указанное действие для каждого элемента стрима, но перед этим добивается правильного порядка вхождения элементов. Используется для параллельных стримов, когда нужно получить правильную последовательность элементов.IntStream.range(0, 100000)<br>.parallel()<br>.filter(x -> x % 10000 == 0)<br>.map(x -> x / 10000)<br>.forEach(System.out::println);<br>// 5, 6, 7, 3, 4, 8, 0, 9, 1, 2IntStream.range(0, 100000)<br>.parallel()<br>.filter(x -> x % 10000 == 0)<br>.map(x -> x / 10000)<br>.forEachOrdered(System.out::println);<br>// 0, 1, 2, 3, 4, 5, 6, 7, 8, 9<br>"
+}
+,{
+  question: "Терминальный оператор long count()",
+  answer: "Возвращает количество элементов стрима.long count = IntStream.range(0, 10)<br>.flatMap(x -> IntStream.range(0, x))<br>.count();<br>System.out.println(count);<br>// 45System.out.println(<br>IntStream.rangeClosed(-3, )<br>.count()<br>);<br>// 10System.out.println(<br>Stream.of(0, 2, 9, 13, 5, 11)<br>.(x -> x 2)<br>.filter(x -> x % 2 == 1)<br>.count()<br>);<br>// 0<br>"
+}
+,{
+  question: "Терминальный оператор R collect(Collector collector)",
+  answer: "Один из самых мощных операторов Stream API. С его помощью можно собрать все элементы в список, множество или другую коллекцию, сгруппировать элементы по какому-нибудь критерию, объединить всё в строку и т.д.. В классе java.util.stream.Collectors очень много методов на все случаи жизни, мы рассмотрим их позже. При желании можно написать свой коллектор, реализовав интерфейс Collector.List<Integer> list = Stream.of(1, 2, 3)<br>.collect(Collectors.toList());<br>// list: [1, 2, 3]String s = Stream.of(1, 2, 3)<br>.map(String::valueOf)<br>.collect(Collectors.joining('-', '<', '>'));<br>// s: '<1-2-3>'<br>"
+}
+,{
+  question: "Терминальный оператор R collect(Supplier supplier, BiConsumer accumulator, BiConsumer combiner)",
+  answer: "То же, что и collect(collector), только параметры разбиты для удобства. Если нужно быстро сделать какую-то операцию, нет нужды реализовывать интерфейс Collector, достаточно передать три лямбда-выражения.supplier должен поставлять новые объекты (контейнеры), например new ArrayList(), accumulator добавляет элемент в контейнер, combiner необходим для параллельных стримов и объединяет части стрима воедино.List<String> list = Stream.of('a', 'b', 'c', 'd')<br>.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);<br>// list: ['a', 'b', 'c', 'd']<br>"
+}
+,{
+  question: "Терминальный оператор Object[] toArray()",
+  answer: "Возвращает нетипизированный массив с элементами стрима.A[] toArray(IntFunction<A[]> generator)Аналогично, только возвращает типизированный массив.String[] elements = Stream.of('a', 'b', 'c', 'd')<br>.toArray(String[]::new);<br>// elements: ['a', 'b', 'c', 'd']<br>"
+}
+,{
+  question: "Терминальный оператор List<T> toList()",
+  answer: "Возвращает список, подобно collect(Collectors.toList()). Отличие в том, что теперь возвращаемый список гарантированно нельзя будет модифицировать. Любое добавление или удаление элементов в полученный список будет сопровождаться исключением UnsupportedOperationException.List<String> elements = Stream.of('a', 'b', 'c', 'd')<br>.map(String::toUpperCase)<br>.toList();<br>// elements: ['A', 'B', 'C', 'D']<br>"
+}
+,{
+  question: "Терминальный операторT reduce(T identity, BinaryOperator accumulator)U reduce(U identity, BiFunction accumulator, BinaryOperator combiner)",
+  answer: "Позволяет преобразовать все элементы стрима в один объект. Например, посчитать сумму всех элементов, либо найти минимальный элемент.Сперва берётся объект identity и первый элемент стрима, применяется функция accumulator и identity становится её результатом. Затем всё продолжается для остальных элементов.<br>int sum = Stream.of(1, 2, 3, 4, 5)<br>.reduce(10, (acc, x) -> acc + x);<br>// sum: 25<br>"
+}
+,{
+  question: "Терминальный операторOptional reduce(BinaryOperator accumulator)",
+  answer: "Этот метод отличается тем, что у него нет начального объекта identity. В качестве него служит первый элемент стрима. Поскольку стрим может быть пустой и тогда identity объект не присвоится, то результатом функции служит Optional, позволяющий обработать и эту ситуацию, вернув Optional.empty().Optional<Integer> result = Stream.<Integer>empty()<br>.reduce((acc, x) -> acc + x);<br>System.out.println(result.isPresent());<br>// falseOptional<Integer> sum = Stream.of(1, 2, 3, 4, 5)<br>.reduce((acc, x) -> acc + x);<br>System.out.println(sum.get());<br>// 15<br>"
+}
+,{
+  question: "Терминальный операторOptional min(Comparator comparator)Optional max(Comparator comparator)",
+  answer: "Поиск минимального/максимального элемента, основываясь на переданном компараторе.<br>int min = Stream.of(20, 11, 45, 78, 13)<br>.min(Integer::compare).get();<br>// min: 11<br>int max = Stream.of(20, 11, 45, 78, 13)<br>.max(Integer::compare).get();<br>// max: 78<br>"
+}
+,{
+  question: "Терминальный оператор Optional findAny()",
+  answer: "Возвращает первый попавшийся элемент стрима. В параллельных стримах это может быть действительно любой элемент, который лежал в разбитой части последовательности."
+}
+,{
+  question: "Терминальный оператор Optional findFirst()",
+  answer: "Гарантированно возвращает первый элемент стрима, даже если стрим параллельный.Если нужен любой элемент, то для параллельных стримов быстрее будет работать findAny().int anySeq = IntStream.range(4, 65536)<br>.findAny()<br>.getAsInt();<br>// anySeq: 4int firstSeq = IntStream.range(4, 65536)<br>.findFirst()<br>.getAsInt();<br>// firstSeq: 4int anyParallel = IntStream.range(4, 65536)<br>.parallel()<br>.findAny()<br>.getAsInt();<br>// anyParallel: 32770int firstParallel = IntStream.range(4, 65536)<br>.parallel()<br>.findFirst()<br>.getAsInt();<br>// firstParallel: 4<br>"
+}
+,{
+  question: "Терминальный оператор boolean allMatch(Predicate predicate)",
+  answer: "Возвращает true, если все элементы стрима удовлетворяют условию predicate. Если встречается какой-либо элемент, для которого результат вызова функции-предиката будет false, то оператор перестаёт просматривать элементы и возвращает false.boolean result = Stream.of(1, 2, 3, 4, 5)<br>.allMatch(x -> x <= 7);<br>// result: true<br>"
+}
+,{
+  question: "Терминальный оператор boolean anyMatch(Predicate predicate)",
+  answer: "Возвращает true, если хотя бы один элемент стрима удовлетворяет условию predicate. Если такой элемент встретился, нет смысла продолжать перебор элементов, поэтому сразу возвращается результат.boolean result = Stream.of(1, 2, 3, 4, 5)<br>.anyMatch(x -> x == 3);<br>// result: true<br>"
+}
+,{
+  question: "Терминальный оператор boolean noneMatch(Predicate predicate)",
+  answer: "Возвращает true, если, пройдя все элементы стрима, ни один не удовлетворил условию predicate. Если встречается какой-либо элемент, для которого результат вызова функции-предиката будет true, то оператор перестаёт перебирать элементы и возвращает false.<br>boolean result = Stream.of(1, 2, 3, 4, 5)<br>.noneMatch(x -> x == 9);<br>// result: true<br>"
+}
+,{
+  question: "Терминальный оператор OptionalDouble average()",
+  answer: "Только для примитивных стримов. Возвращает среднее арифметическое всех элементов. Либо Optional.empty, если стрим пуст.<br>double result = IntStream.range(2, 16)<br>.average()<br>.getAsDouble();<br>// result: 8.5<br>"
+}
+,{
+  question: "Терминальный оператор sum()",
+  answer: "Возвращает сумму элементов примитивного стрима. Для IntStream результат будет типа int, для LongStream — long, для DoubleStream — double.long result = LongStream.range(2, 16)<br>.sum();<br>// result: 119<br>"
+}
+,{
+  question: "Терминальный оператор IntSummaryStatistics summaryStatistics()",
+  answer: "Полезный метод примитивных стримов. Позволяет собрать статистику о числовой последовательности стрима, а именно: количество элементов, их сумму, среднее арифметическое, минимальный и максимальный элемент.LongSummaryStatistics stats = LongStream.range(2, 16)<br>.summaryStatistics();<br>System.out.format(' count: %d%n', stats.getCount());<br>System.out.format(' sum: %d%n', stats.getSum());<br>System.out.format('average: %.1f%n', stats.getAverage());<br>System.out.format(' min: %d%n', stats.getMin());<br>System.out.format(' max: %d%n', stats.getMax());<br>// count: 14<br>// sum: 119<br>// average: 8,5<br>// min: 2<br>// max: 15<br>"
+}
+,{
+  question: "Collector",
+  answer: "Интерфейс java.util.stream.Collector служит для сбора элементов стрима в некоторый мутабельный контейнер. Он состоит из таких методов:<br>- Supplier\<A> supplier() — функция, которая создаёт экземпляры контейнеров.<br>- BiConsumer<A,T> accumulator() — функция, которая кладёт новый элемент в контейнер.<br>- BinaryOperator\<A> combiner() — функция, которая объединяет два контейнера в один. В параллельных стримах каждая часть может собираться в отдельный экземпляр контейнера и в итоге необходимо их объединять в один результирующий.<br>- Function<A,R> finisher() — функция, которая преобразовывает весь контейнер в конечный результат. Например, можно обернуть List в Collections.unmodifiableList.<br>- Set<Characteristics> characteristics() — возвращает характеристики коллектора, чтобы внутренняя реализация знала, с чем имеет дело. Например, можно указать, что коллектор поддерживает многопоточность.<br>  Характеристики: - CONCURRENT — коллектор поддерживает многопоточность, а значит отдельные части стрима могут быть успешно положены в контейнер из другого потока. - UNORDERED — коллектор не зависит от порядка поступаемых элементов. - IDENTITY_FINISH — функция finish() имеет стандартную реализацию (Function.identity()), а значит её можно не вызывать.<br>"
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

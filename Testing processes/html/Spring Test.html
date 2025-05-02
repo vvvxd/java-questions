@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое Spring Test?",
+  answer: "Spring Test это одна из библиотек, входящих в Spring Framework, по сути все, что описано в разделе документации про интеграционное тестирование как раз о ней. Четыре главных задачи, которые решает библиотека это:Управлять Spring IoC контейнерами и их кэшированием между тестамиПредоставить внедрение зависимостей для тестовых классовПредоставить управление транзакциями, подходящее для интеграционных тестовПредоставить набор базовых классов чтобы помочь разработчику писать интеграционные тесты"
+}
+,{
+  question: "Жизненный цикл теста?",
+  answer: "Расширение для тестового фреймворка (SpringRunner для JUnit 4 и SpringExtension для JUnit 5) вызывает Test Context BootstrapperBoostrapper создает TestContext — основной класс, который хранит текущее состояние теста и приложенияTestContext настраивает разные хуки (вроде запуска транзакций до теста и отката после), инжектит зависимости в тестовые классы (все @Autowired поля на тестовых классах) и занимается созданием контекстовКонтекст создается используя Context Loader — тот берет базовую конфигурацию приложения и сливает ее с тестовой конфигурацией (перекрытые свойства, профили, бины, инициализаторы и т.п.)Контекст кешируется используя составной ключ, который полностью описывает приложение — набор бинов, свойств и т.п.Тест запускается"
+}
+,{
+  question: "Кеширование контекста в интеграционном тестировании",
+  answer: "Пожалуй, одна из очень непонятных тем в интеграционном тестировании, которая вызывает много вопросов и заблуждений — это кеширование контекста между тестами и его влияние на скорость выполнения тестов. Частый комментарий, который я слышу, это то, что интеграционные тесты 'медленные' и 'запускают приложение на каждый тест'. Так вот, они действительно запускают — однако не на каждый тест. Каждый контекст (т.е. инстанс приложения) будет переиспользован по максимуму, т.е. если 10 тестов используют одинаковую конфигурацию приложения — то приложение запустится один раз на все 10 тестов. Что же значит 'одинаковая конфигурация' приложения? Для Spring Test это значит что не изменился набор бинов, классов конфигураций, профилей, свойств и т.п. На практике это означает, что например эти два теста будут использовать один и тот же контекст"
+}
+,{
+  question: "Что же может помешать Spring Test переиспользовать контекст из кэша и создать новый?",
+  answer: "@DirtiesContextСамый простой вариант — если тест помечен это аннотаций, кэшироваться контекст не будет. Это может быть полезно, если тест меняет состояние приложение и хочется его 'сбросить'.@MockBeanОчень неочевидный вариант, я даже вынес его отдельно — @MockBean заменяет реальный бин в контексте на мок, который можно тестировать через Mockito (в следующих статьях я еще покажу как это использовать). Ключевой момент — эта аннотация меняет набор бинов в приложении и заставляет Spring Test создать новый контекст. Если взять предыдущий пример, то например здесь уже будут созданы два контекста:<br>@SpringBootTest<br>@ActiveProfiles('test')<br>@TestPropertySource('foo=bar')<br>class FirstTest { }@SpringBootTest<br>@ActiveProfiles('test')<br>@TestPropertySource('foo=bar')<br>class SecondTest {<br>@MockBean CakeFinder cakeFinderMock; }@TestPropertySourceЛюбое изменение свойств автоматически меняет ключ кэша и создается новый контекст.@ActiveProfilesИзменение активный профилей тоже повлияет на кэш.@ContextConfigurationНу и разумеется, любое изменение конфигурации тоже создаст новый контекст."
+}
+,{
+  question: "Ка сделать интеграционный тест для JPA используя @DataJpaTest",
+  answer: "Интеграционные тесты — это хлеб и масло Spring. В нем, вообщем-то, все так здорово сделано для интеграционного тестирования, что разработчики иногда не хотят уходить на юнит-уровень или пренебрегают UI уровнем. Это не плохо и не хорошо — повторюсь, что главная цель тестов — это уверенность. И набора быстрых и эффективных интеграционных тестов может быть достаточно, чтобы эту уверенность предоставить. Однако есть опасность, что эти тесты со временем либо будут медленнее и медленнее, либо просто начнут тестировать компоненты в изоляции, вместо интеграции.<br>Интеграционные тесты могут запустить приложение, как есть (@SpringBootTest), либо его отдельный компонент (JPA, Web). В моем случае, я хочу написать сфокусированный тест для JPA — поэтому мне нет необходимости конфигурировать контроллеры или любые другие компоненты. За это в Spring Boot Test отвечает аннотация @DataJpaTest. Это мета-аннотация, т.е. она комбинирует сразу несколько разных аннотаций, конфигурирующих разные аспекты теста.@AutoConfigureDataJpa<br>@AutoConfigureTestDatabase<br>@AutoConfigureCache<br>@AutoConfigureTestEntityManager<br>@Transactional"
+}
+,{
+  question: "Что делает аннатация @AutoConfigureDataJpa?",
+  answer: "Загружает целый набор конфигураций и настраивает — репозитории (автоматическая генерация реализаций для CrudRepositories), инструменты миграции базы FlyWay и Liquibase, подключение к БД используя DataSource, менеджер транзакций, и, наконец, Hibernate. По-сути, это просто набор конфигураций, актуальных для доступа к данным — сюда не включены ни DispatcherServlet из Web MVC, ни другие компоненты."
+}
+,{
+  question: "Что делает аннатация @AutoConfigureTestDatabase?",
+  answer: "Это один из самых интересных аспектов JPA теста. Эта конфигурация ищет в classpath одну из поддерживаемых embedded баз данных и переконфигурирует контекст, чтобы DataSource указывал на случайно созданную in-memory базу. Так как я добавил зависимость на H2 базу — то больше делать ничего не нужно, просто наличие этой аннотации автоматически для каждого запуска теста предоставит пустую базу, и это просто невероятно удобно.<br>Стоит помнить, что эта база будет полностью пустой, без схемы. Чтобы сгенерить схему, есть пара вариантов.Использовать фичу Auto DDL из Hibernate. Spring Boot Test автоматически поставит это значение в create-drop, чтобы Hibernate генерировал схему из описание сущностей и удалял ее в конце сессии. Это невероятно мощная фича Hibernate, которая очень полезна для тестов.Использовать миграции созданные Flyway или Liquibase."
+}
+,{
+  question: "Что делает аннатация @AutoConfigureCache?",
+  answer: "Просто конфигурирует кэш на использование NoOpCacheManager — т.е. не кешировать ничего. Это полезно, чтобы избежать сюрпризов в тестах."
+}
+,{
+  question: "Что делает аннатация @AutoConfigureTestEntityManager?",
+  answer: "Добавляет в контекст специальный объект TestEntityManager, который сам по себе интересный зверь. EntityManager это главный класс JPA, который отвечает за добавление сущностей в сессию, удаление и подобными вещами. Только вот когда, например, в работу вступает Hibernate — добавление сущности в сессию не значит, что будет выполнен запрос в базу, а загрузка из сессии не означает, что будет выполнен select запрос. За счет внутренних механизмов Hibernate реальные операции с базой будут выполнятся в подходящий момент, который определит сам фреймворк. Но в тестах может быть необходимость принудительно послать что-то в базу, ведь цель тестов как раз тестировать интеграцию. И TestEntityManager это просто хелпер, который поможет некоторые операции с базой принудительно выполнится — например, persistAndFlush() заставит Hibernate выполнить все запросы."
+}
+,{
+  question: "Что делает аннатация @Transactional?",
+  answer: "Эта аннотация делает все тесты в классе транзакционными, с автоматическим откатом транзакции по завершению теста. Это просто механизм 'очистки' базы перед каждым тестом, ведь иначе пришлось бы вручную удалять данные из каждой таблицы.Должен ли тест управлять транзакцией — это не такой простой и очевидный вопрос, как может показаться. Не смотря на удобство 'чистого' состояния базы, наличие @Transactional в тестах может стать неприятным сюрпризом если 'боевой' код не начинает транзакцию сам, а требует существующую. Это может привести к тому, что интеграционный тест пройдет, но при выполнении реального кода из контроллера, а не из теста, в сервисе не будет активной транзакции и метод бросит исключение. Хотя это и выглядит опасно, при наличии высокоуровневых тестов UI тестов, транзакционность тестов не так страшна. На моем опыте я видел только однажды, когда при проходящем интеграционном тесте падал продакшен код, который явно требовал наличие существующей транзакции. Но если все же нужно проверять, что сервисы и компоненты сами правильно управляют транзакциями, можно 'перекрыть' аннотацию @Transactional на тесте с нужным режимом (например, не начинать транзакцию)."
+}
+,{
+  question: "Как работает аннотация SpringBootTest?",
+  answer: "1. Тест c @SpringBootTest находится в пакете ru.example.service. Движок идёт по пакету вверх, пока не встретит класс, помеченный аннотацией @SpringBootConfiguration (как ни странно, это наш Main, потому что аннотация @SpringBootApplication помечена искомой).2. Далее происходит поиск бинов, сервисов и других конфигураций согласно @ComponentScan (да, эта аннотация тоже включена в @SpringBootApplication), спускаясь от этого класса.3. Но не все бины будут созданы для теста. Тест содержит поле PersonRepository, помеченное @MockBean. Поэтому вместо реального репозитория, в PersonService придёт мок.4. Ну и после поднятия контекста в @Autowired придёт созданный сервис."
+}
+,{
+  question: "Интеграционный тест со @SpringBootTest",
+  answer: "Еще хочу отметить, что @DataJpaTest это не уникальный пример фокусного интеграционного теста, еще есть @WebMvcTest, @DataMongoTest и много других. Но одной из самых важных тестовых аннотации остается @SpringBootTest, которая запускает для тестов приложение 'как есть' — со всеми настроенными компонентами и интеграциями. Возникает логичный вопрос — если можно запустить приложение целиком, зачем делать фокусные DataJpa тесты, например? Я бы сказал, что строгих правил тут снова нет.<br>Если возможно запускать приложения каждый раз, изолировать падения в тестах, не перегружать и не переусложнять Setup теста — то конечно можно и нужно использовать @SpringBootTest.<br>Однако в реальной жизни, приложения могут требовать много разных настроек, подключатся к разным системам, а я бы не хотел, чтобы мои тесты доступа к БД падали, т.к. не настроено подключение к очереди сообщений. Поэтому важно использовать здравый смысл, и если для того, чтобы заставить тест с @SpringBootTest аннотацией работать нужно замокать половину системы — то есть ли смысл тогда вообще в @SpringBootTest?"
+}
+,{
+  question: "Как написать Unit-тест на контроллер.?",
+  answer: "В Spring Boot имеется аннотация @WebMvcTest, которая позволяет писать как раз такие unit-тесты@RunWith(SpringRunner.class) @WebMvcTest(PersonController.class)<br>public class PersonControllerTest {@MockBean private PersonRepository repository; @Autowired private MockMvc mockMvc;@Test public void testReturn200() throws Exception {given(repository.getById(any())).willReturn(new Person(42, 'Ivan'));<br>mockMvc.perform(get('/person/42') .andExpect(status().isOk())<br>.andExpect(content() .contentTypeCompatibleWith(MediaType.APPLICATION_JSON));<br>} }Здесь Spring Boot c помощью @WebMvcTest (PersonController.class) создаёт фейковое окружение с настроенным Spring MVC и входящим в него Jackson, причём именно в том виде, в каком они настроены в реальном приложении.Далее мы создаём запрос с помощью mockMvc, кстати, его можно настраивать.А далее мы пишем набор matсher-ов, которые проверяют запрос, здесь можно проверить также и контент, и HTTP-заголовки."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

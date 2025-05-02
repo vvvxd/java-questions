@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "JAVA 9. Что нового?",
+  answer: "1) Фабричные методы для коллекцийList.of(1, 2, 3)<br>Set.of(1, 2)<br>Map.of('hello', 'world')2) Стримы<br>   методы dropWhile и takeWhile. dropWhile выбрасывает элементы с начала и до тех пор, пока не будет выполнено условие, а takeWhile — забирает элементы вплоть до выполнения условия.IntStream.range(1, 10)<br>.dropWhile(x -> x < 5).forEach(System.out::println)Метод iterate(). Он позволяет заменять циклы стримами.ntStream.iterate(0, x -> x < 3, x -> x +1) .forEach(System.out::println)3) Optional<br>   Метод or() и ifPresentOrElse()4) Completable futureметод copy(), который возвращает немутабельную копию этого CompletableFuture. Раньше нужно было знатно помучиться, обруливая ситуации, когда клиент может сам завершить CompletableFuture, возвращенное из такого API. Сейчас достаточно просто взывать метод copy().<br>completeOnTimeout() - работа с таймаутами,5) StackWalker<br>   StackWalker дает возможность бродить по стеку, фильтровать его, и эффективно делать разные другие вещи. Этот пример выдернет верхние 5 элементов из стектрейс6) Интерфейсы<br>   Интерфейсы в Java 9 смогут содержать приватные методы. В Java 8 мы получили возможность хранить некую общую логику в default-методах. Теперь мы сможем выделять общую логику и внутри интерфейсов, без необходимости создания вспомогательных классов.7) try-with-resources<br>   Теперь можно использовать effectively final переменные в блоках try-with-resources. Это упрощает код, не нужно больше объявлять переменные внутри try. Просто работаете с ними в блоке try, и это компилируется.<br>   boolean a() throws Exception {<br>   Socket s = new Socket();<br>   try (s) { } return s.isClosed();<br>   }"
+}
+,{
+  question: "JAVA 10 Что нового?",
+  answer: "Local-Variable Type Inference<br>Можно не указывать тип локальной переменной. Ключевое слово var позаботится об этом:var data = new ArrayList<String>();"
+}
+,{
+  question: "JAVA 11 Что нового?",
+  answer: "1) Строки и файлы<br>   Строки и файлы получили несколько новых методов (не все перечислены здесь):<br>   'Marco'.isBlank();<br>   'Mar\nco'.lines();<br>   'Marco '.strip();<br>   Path path = Files.writeString(Files.createTempFile('helloworld', '.txt'), 'Hi, my name is!');<br>   String s = Files.readString(path);2) Запустить исходные файлы<br>   Начиная с Java 10, вы можете запускать исходные файлы Java без предварительной компиляции. Шаг к написанию сценариев.<br>   java MyScript.java3) Вывод типа локальной переменной (var) для лямбда-параметров<br>   В заголовке все сказано:<br>   (var firstName, var lastName) -> firstName + lastName4) HttpClient<br>   HttpClient из Java 9, но уже в окончательной, а не превью версии.5)Другие вкусности<br>Flight Recorder (Регистратор полетов), сборщик мусора No-Op, Nashorn-Javascript-Engine объявлен deprecated (устаревшим) и т.д."
+}
+,{
+  question: "JAVA 17 Что нового?",
+  answer: "1) Records<br>   Records (записи) - это ответ Java на Lombok. По крайней мере, частично. Запись - это тип, предназначенный для хранения некоторых данных.Запись автоматически получает множество стандартных членов:<br>Private final поле для каждого компонента описания состояния;<br>Public метод доступа для чтения для каждого компонента описания состояния с тем же именем и типом, что и компонент;<br>Public конструктор, сигнатура которого совпадает с описанием состояния, который инициализирует каждое поле из соответствующего аргумента;<br>Реализации equals и hashCode, которые говорят, что две записи равны, если они одного типа и содержат одно и то же состояние; а также<br>Реализацию toString, которая включает строковое представление всех компонентов записи с их именами.public record Triangle(int x, int y, int z){}2)Расширенные Switch выражения<br>boolean freeDay = switch (dayOfWeek) {<br>case MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY -> false;<br>case SATURDAY, SUNDAY -> true;<br>};3)Сопоставление с образцом Instanceof<br>Теперь вам не придется писать приведение к типу после Instanceof. Теперь Java может создать локальную переменную внутри if, например:<br>if (obj instanceof MyObject myObject) { // ... логика }4)TextBlocks<br>Многострочный текстовый блок теперь можно объявить следующим образом:<br>String myWallOfText = ''' блок'''5)Улучшенные NullPointerExceptions<br>Однажды в моем приложении была такая цепочка вызовов, и я думаю, она вам тоже может показаться знакомой:<br>company.getOwner().getAddress().getCity();<br>Я получил NPE, который точно сказал мне, в какой строке был обнаружен null. Да, это была эта строка. Без отладчика я не мог бы сказать, какой объект был null, или, скорее, какая операция вызова на самом деле вызвала проблему. Теперь сообщение будет конкретным, и в нем будет сказано, что JVM «не может вызвать Person.getAddress()»."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

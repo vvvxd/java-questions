@@ -41,14 +41,14 @@ public class ProcessUtil {
 
             String[] aq = line.split("\r\n\r\n");
 
-            String question = aq[0].replace("\r\n", "");
+            String question = aq[0].replace("\r\n", "").replaceAll("\"", "'");
             StringBuilder answer = new StringBuilder();
 
             for (int i = 1; i < aq.length; i++) {
                 answer.append(aq[i]);
             }
 
-            String answerStr = PhotoUtil.findPhoto(answer.toString().replace("\r\n", "<br>").replace("\"", "'"));
+            String answerStr = PhotoUtil.findPhoto(answer.toString().replaceAll("\r\n", "<br>").replaceAll("\"", "'"));
 
             StringSubstitutor substitutor = new StringSubstitutor(Map.of("question", question, "answer", answerStr));
 

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое аутентификация и авторизация?",
+  answer: "Аутентификация — процесс верификации пользователя компьютерной системы.Вот как он происходит в Spring:<br>1) Полученные пароль и имя пользователя преобразуются в экземпляр UsernamePasswordAuthenticationToken. Он реализует интерфейс Authentication.<br>2) Токен передается объекту AuthenticationManager для проверки<br>3) В случае удачной проверки AM возвращает заполненный объект Authentication<br>4) Устанавливается security context, с помощью вызова SecurityContextHolder.getContext().setAuthentication(...)Авторизация — это процесс удостоверения в том, что у пользователя есть роль, требуемая чтобы сделать какое-либо действие. При авторизации проверяется, есть ли у вас соответствующие права на доступ к ресурсу.<br>Процесс:<br>1) По принципалу(principal) пользователя отображается его роль<br>2) Роль пользователя сверяется с ролью ресурса<br>   Сначала происходит аутентификация, а потом — авторизация."
+}
+,{
+  question: "Как Security работает внутри?",
+  answer: "Используя Spring AOP proxy, которые наследуются от класса AbstractSecurityInterceptor.<br>Применяется для методов вызывающих авторизацию.<br>Веб-инфраструктура в Security основана на servlet-фильтрах.<br>Первым делом конфигурируется фильтр DelegatingFilterProxy. Он делегирует запрос в FilterChainProxy.<br>FilterChainProxy — это бин, который принимает в конструкторе один или несколько SecurityFilterChain.<br>SeccurityFilterChain сравнивает URL в запросе со списком фильтров."
+}
+,{
+  question: "Основные объекты, участвующие в Spring Security",
+  answer: "SecurityContextHolder — содержит и предоставляет доступ к SecurityContext в приложении.<br>SecurityContext — дефолтная реализация Spring Security содержащая объект Authentication.<br>Authentication — предоставляет токен для запроса аутентификации или для принципала, который прошел аутентификацию. Также содержит список полномочий, к которым получил доступ принципал.<br>GrantedAuthority — содержит полномочия выданные прошедшему проверку принципалу.<br>UserDetails — содержит информацию о пользователе: пароль, логин, полномочия. Эта информация используется для создания объекта Authentication после удачной аутентификации.<br>UserDetailsService — этот сервис извлекает информацию о пользователе из хранилища(память программы, бд, и т.п.) и кладет ее в UserDetails."
+}
+,{
+  question: "Что такое делегирующий прокси фильтр?",
+  answer: "Класс DelegatingFilterProxy — это класс, который реализует интерфейс javax.Servlet.Filter.<br>Это специальный фильтр, который делегирует работу другим бинам, которые также являются фильтрами."
+}
+,{
+  question: "Что такое security filter chain?",
+  answer: "Цепочка фильтров имплементит интерфейс SecurityFilterChain. Имплементацией, поставляемой Spring Security, является DefaultSecurityFilterChain.<br>Конструктор DSFC принимает несколько параметров. Первый параметр — request matcher. Остальные параметры — это фильтры, реализующие интерфейс servlet.Filter. Вот все фильтры, принимаемые DSFC:<br>ChannelProcessingFilter<br>SecurityContextPersistenceFilter<br>ConcurrentSessionFilter<br>Любой auth. фильтр: UserNamePasswordAuthenticationFilter / CasAythenticationFilter / BasicAuthenticationFilter<br>SecurityContextHolderAwareRequestFilter<br>JaasApiIntegrationFilter<br>RemeberMeAuthenticationFilter<br>AnonymusAuthenticationFilter<br>ExceptionTranslationFilter<br>FilterSecurityInterceptor"
+}
+,{
+  question: "Что такое security context?",
+  answer: "Основной объект — это SecurityContextHolder. Это место, где хранятся детали о текущем security context, например детали принципала который в текущий момент пользуется приложением. По умолчанию для хранения используется ThreadLocal.<br>//получение SecurityContext SecurityHolderContext.getContext()<br>Объект, возвращаемый методом getContext() это SecurityContext. Он позволяет получать и устанавливать объект Authentication.<br>Authentication представляет следующие свойства:<br>Коллекцию полномочий выданных принципалу<br>Данные для удостоверения пользователя(логин, пароль)<br>Details — доп. информация, если она нужна. Может быть равно null<br>Принципал<br>Authentication flag — boolean переменная, которая показывает успешно ли прошел проверку принципал"
+}
+,{
+  question: "Как установить перехват перехода пользователя по определенным URL?",
+  answer: "@Override protected void configure(HttpSecurity http) throws Exception { http.authorizeRequests()<br>//игнорирование всех запросов на /resources .antMatchers('/resources/**').permitAll()<br>//для остальных запросов требуется одна из 2 ролей<br>.antMatchers('/').hasAnyRole('ANONYMOUS', 'USER') .antMatchers('/login)*').hasAnyRole('ANONYMOUS', 'USER') .antMatchers('/logoutr').hasAnyRole('ANONYMOUS', 'USER')<br>//запрос на ресурсы ниже требуют роль ADMIN .antMatchers('iadmin/*').hasRole('ADMIN') .antMatchers('/events/').hasRole('ADMIN') }"
+}
+,{
+  question: "Что означает * в методах antMatchers и mvcMatchers()?",
+  answer: "Это выражение означает 'любой'.<br>Есть 2 вида:<br>* — перехватывает только на том уровне, на котором используется.<br>  Например, паттерн '/orders/*' проверит права пользователя, если пользователь перейдет по<br>  /orders/aliens или /orders/1, но не /orders/alien/1.<br>  ** — перехватывает на всех уровнях.Будут проверены любые запросы, /orders/aliens, /orders/1, /orders/alien/1."
+}
+,{
+  question: "Почему mvcMatcher более защищенный чем antMatcher?",
+  answer: "Потому что antMatcher('/service') сопоставляет путь запроса только с '/service', в то время как mvcMatcher('/service') сопоставляет с '/service', '/service.html', '/service.abc'."
+}
+,{
+  question: "Spring поддерживает хэширование паролей? Что такое соль?",
+  answer: "Да, поддерживает. Для хэширования существует интерфейс PasswordEncoder, который содержит только один метод:<br>static PasswordEncoder createDelegatingPasswordEncoder(), который возвращает DelegatePasswordEncoder, настроенный по умолчанию.<br>Соль используется для вычисления хеш-значения пароля. Это последовательность рандомных чисел, которые используются для преобразования текстового пароля в хеш. Соль хранится в открытом виде рядом с хеш-паролем и может использоваться в дальнейшем при конвертации чистого пароля в хеш при новом логине пользователя."
+}
+,{
+  question: "Зачем нужна защита для методов? Как ее установить?",
+  answer: "Spring Security поддерживает защиту отдельных методов в бинах(например, в контроллерах). Это дополнительный слой защиты для приложения.<br>Ее требуется указать явно, используя аннотацию @EnableGlobalMethodSecurity."
+}
+,{
+  question: "Что делает аннотация @RolesAllowed?",
+  answer: "Эта аннотация основана на JSR-250.@RolesAllowed позволяет настроить доступ к методам(например, в классе-контроллере) с помощью ролей.Пример: @RolesAllowed('ADMIN') будет пропускать только пользователей с ролью ADMIN<br>Для использования нужно установить @EnableGlobalMethodSecurity(jsr250Enabled=true) на @Configuration классе + нужно чтобы эта аннотация была в classpath."
+}
+,{
+  question: "Расскажите про @PreAuthorize",
+  answer: "@PreAuthorize позволяет настроить доступ к методу используя SpEL.Для использования нужно установить @EnableGlobalMethodSecurity(prePostEnabled=true)"
+}
+,{
+  question: "Как реализованы все эти аннотации?",
+  answer: "Используется сквозная функциональность, с помощью Spring AOP(прокси-объекты)."
+}
+,{
+  question: "Опишите работу AuthenticationManager",
+  answer: "public interface AuthenticationManager {<br>Authentication authenticate(Authentication authentication) throws AuthenticationException;<br>}AuthenticationManager представляет из себя интрефейс, который принимает Authentication и возвращает тоже Authentication.В нашем случае в имплементацией Authentication будет UsernamePasswordAuthenticationToken.Можно было бы реализовать AuthenticationManager самому, но смысла в этом мало, существует дефолтная реализация — ProviderManager.ProviderManager авторизацию делегирует другому интерфейсу:public interface AuthenticationProvider {Authentication authenticate(Authentication authentication) throws AuthenticationException;boolean supports(Class<?> authentication);<br>}Когда мы передаем объект Authentication в ProviderManager, он перебирает существующие AuthenticationProvider-ры и проверяет суппортит ли AuthenticationProvider эту имплементацию Authenticationpublic boolean supports(Class<?> authentication) {<br>return (UsernamePasswordAuthenticationToken.class .isAssignableFrom(authentication));<br>}В результате внутри AuthenticationProvider.authenticate мы уже можем скастить переданный Authentication в нужную реализацию без каст эксепшена. Далее из конкретной реализации вытаскиваем креденшеналы. Если аутентификация не удалась AuthenticationProvider должен бросить эксепшен ,ProviderManagerпоймает его и попробует следующий AuthenticationProvider из списка, если ни один AuthenticationProvider не вернет успешную аутентификацию, то ProviderManager пробросит последний пойманный эксепшен.<br>Далее BasicAuthenticationFilter сохраняет полученный Authentication в SecurityContextHolderSecurityContextHolder.getContext().setAuthentication(authResult);<br>Процесс аутентификации на этом завершен.<br>Если выбросится AuthenticationException то будет сброшен SecurityContextHolder.clearContext();контекст и вызовится AuthenticationEntryPoint.public interface AuthenticationEntryPoint {<br>void commence(HttpServletRequest request, HttpServletResponse response,<br>AuthenticationException authException) throws IOException, ServletException;<br>}Задачей AuthenticationEntryPoint явялется записать в ответ информацию о том что аутентификация не удалась.В случае бейсик аутентификации это будет:response.addHeader('WWW-Authenticate', 'Basic realm=\'' + realmName + '\'');<br>response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage());В результате браузер покажет окошко basic авторизации."
+}
+,{
+  question: "Расскажите про фильтры в SecurityFilterChain",
+  answer: "0 = {WebAsyncManagerIntegrationFilter}<br>Нам не очень интересен, согласно документации он «интегрирует» SecurityContext с WebAsyncManager который отвественнен за асинхронные запросы.1 = {SecurityContextPersistenceFilter}<br>Ищет SecurityContext в сессии и заполняет SecurityContextHolder если находит.По умолчанию используется ThreadLocalSecurityContextHolderStrategy которая хранит SecurityContext в ThreadLocal переменной.2 = {HeaderWriterFilter}<br>Просто добавляет заголовки в response.Отключаем кэш:<br>- Cache-Control: no-cache, no-store, max-age=0, must-revalidate<br>- Pragma: no-cache- Expires: 0Не разрешаем браузерам автоматически определять тип контента:<br>- X-Content-Type-Options: nosnifНе разрешаем iframe<br>- X-Frame-Options: DENYВключаем встроенную зашиту в браузер от cross-site scripting (XSS)<br>- X-XSS-Protection: 1; mode=block3 = {CsrfFilter}<br>Пожалуй нет ни одного разработчика который при знакомстве с SS не столкнулся бы с ошибкой «отсутсвия csrf токена».Почему мы не встречали эту ошибку ранее? Все просто, мы запускали методы на которых нет csrf защиты.4 = {LogoutFilter}<br>Далее идет logout фильтр, он проверяет совпадает ли url c паттерномAnt [pattern='/logout', POST] - по умолчаниюи запускает процедуру логаутапо дефолту происходит следующие:<br>Удаляется Csrf токен.<br>Завершается сессия<br>Чистится SecurityContextHolder5 = {BasicAuthenticationFilter}<br>Теперь мы добрались непосредственно до аутентификации. Что происходит внутри?Фильтр проверяет, есть ли заголовок Authorization со значением начинающийся на BasicЕсли находит, извлекает логин\пароль и передает их вAuthenticationManager6 = {RequestCacheAwareFilter}<br>Для чего нужен этот фильтр? Представим сценарий:<br>1. Пользователь заходит на защишенный url.<br>2. Его перекидывает на страницу логина.<br>3. После успешной авторизации пользователя перекидывает на страницу которую он запрашивал в начале.Именно для для восстановления оригинального запроса существует этот фильтр.Внутри проверяется есть ли сохраненный запрос, если есть им подменяется текущий запрос.Запрос сохраняется в сессии, на каком этапе он сохраняется будет написанно ниже.7 = {SecurityContextHolderAwareRequestFilter}<br>Оборачивает существущий запрос в SecurityContextHolderAwareRequestWrapper8 = {AnonymousAuthenticationFilter}<br>Если к моменту выполнения этого фильтра SecurityContextHolder пуст, т.е. не произошло аутентификации фильтр заполняет объект SecurityContextHolder анонимной аутентификацией — AnonymousAuthenticationToken с ролью «ROLE_ANONYMOUS».Это гарарантирует что в SecurityContextHolder будет объект, это позволяет не бояться NP, а также более гибко подходить к настройке доступа для неавторизованных пользователей.9 = {SessionManagementFilter}<br>На это этапе производятся действия связанные с сессией.Это может быть:<br>— смена идентификатора сессии<br>— ограничени количества одновременных сессий<br>— сохранение SecurityContext в securityContextRepositoryВ нашем случае происходит следующе: SecurityContextRepository с дефолтной реализацией HttpSessionSecurityContextRepository сохраняет SecurityContext в сессию.Вызывается sessionAuthenticationStrategy.onAuthenticationПроисходят 2 вещи:<br>1. По умолчанию включенна защита от session fixation attack, т.е. после аутенцификации меняется id сессии.<br>2. Если был передан csrf токен, генерируется новый csrf токен10 = {ExceptionTranslationFilter}<br>К этому моменту SecurityContext должен содеражть анонимную, либо нормальную аутентификацию.ExceptionTranslationFilter прокидывает запрос и ответ по filter chain и обрабатывает возможные ошибки авторизации.SS различает 2 случая:<br>1. AuthenticationException Вызывается sendStartAuthentication, внутри которого происходит следующиее:<br>   SecurityContextHolder.getContext().setAuthentication(null;— отчищает SecurityContextHolderrequestCache.saveRequest(request, response);— сохраняет в requestCache текущий запрос, чтобы RequestCacheAwareFilter было что восстанавливать.authenticationEntryPoint.commence(request, response, reason);— вызывает authenticationEntryPoint — который записывает в ответ сигнал о том что необходимо произвести аутентификацию (заголовки \ редирект)2. AccessDeniedExceptionТут опять возможны 2 случая:<br>1. Пользователь с анонимной аутентификацией, или с аутентификацией по rememberMe токену вызывается sendStartAuthentication<br>2. Пользователь с полной, не анонимной аутентификацией вызывается:accessDeniedHandler.handle(request, response, (AccessDeniedException) exception)который по дефолту проставляет ответ forbidden 40311 = {FilterSecurityInterceptor}<br>На последнем этапе происходит авторизация на основе url запроса.FilterSecurityInterceptor наследуется от AbstractSecurityInterceptor и решает, имеет ли текущий пользователь доступ до текущего url.Существует другая реализация MethodSecurityInterceptor который отвественнен за допуск до вызова метода, при использовании аннотаций @Secured\@PreAuthorize.Внутри вызывается AccessDecisionManagerЕсть несколько стратегий принятия решения о том давать ли допуск или нет, по умолчанию используется: AffirmativeBased"
+}
+,{
+  question: "Основные фильтры в Spring Security",
+  answer: "WebAsyncManagerIntegrationFilter — Интегрирует SecurityContext с WebAsyncManagerSecurityContextPersistenceFilter — Ищет SecurityContext в сессии и заполняет SecurityContextHolder если находитHeaderWriterFilter — Добавляет «security» заголовки в ответCsrfFilter — Проверяет на наличие сsrf токенаLogoutFilter — Выполняет logoutBasicAuthenticationFilter — Производит basic аутентификациюRequestCacheAwareFilter — Восстанавливает сохраненный до аутентификации запрос, если такой естьSecurityContextHolderAwareRequestFilter — Оборачивает существущий запрос в SecurityContextHolderAwareRequestWrapperAnonymousAuthenticationFilter — Заполняет SecurityContext ананонимной аутентификациейSessionManagementFilter — Выполняет действия связанные с сессиейExceptionTranslationFilter — Обрабатывает AuthenticationException\AccessDeniedException которые происходят ниже по стеку.FilterSecurityInterceptor — Проверяет имеет ли текущей пользователь доступ к текущему url.FilterComparator — здесь можно посмотреть список фильтров и их возможный порядок.Основные сущности:<br>AuthenticationManager — интерфейс, ответственнен за аутентификациюProviderManager — реализация AuthenticationManager, которая использует внутри использует AuthenticationProviderAuthenticationProvider — интерфейс, отвественнен за аутентификаци конкретной реализации Authentication.SecurityContextHolder — хранит в себе аутентификацию обычно в ThreadLocal переменной.AuthenticationEntryPoint — модифицирует ответ, чтобы дать понять клиенту что необходима аутентификация (заголовки, редирект на страницу логина, т.п.)AccessDecisionManager решает имеет ли Authentication доступ к какому-то ресурсу.AffirmativeBased — стратегия используемая AccessDecisionManager по умолчанию."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

@@ -22,7 +22,7 @@ public class Main {
 
     private static Factory factory = new Factory();
 
-    private static final Set<String> notProcessed = Set.of("src", "target", "templates", ".idea", ".git", "html", "files", "pom.xml", "README.md", "image", "file", "main.html", "img.png");
+    private static final Set<String> notProcessed = Set.of("src", "target", "templates", ".idea", ".git", "html", "files", "pom.xml", "README.md", "image", "file", "index.html", "img.png");
 
     public static void main(String[] args) throws IOException {
         readTemplate();
@@ -41,7 +41,7 @@ public class Main {
             for (File child : file.listFiles((dir, name) -> !notProcessed.contains(name))) {
                 if (child.isDirectory()) {
                     createHtmlDir(path, child);
-                    Thema thema = process(child, path + File.separator + child.getName(), false, main ? path + "/main.html" : path + "/html/main.html");
+                    Thema thema = process(child, path + File.separator + child.getName(), false, main ? path + "/index.html" : path + "/html/index.html");
                     map.put(child.getName(), thema);
                 } else {
                     Thema thema = factory.createFile(child, path + "/html/");

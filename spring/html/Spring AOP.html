@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое AOP? Как это относиться к IoC?",
+  answer: "Аспектно-ориентированное программирование (АОП) - парадигма программирования, основанная на идее разделения функциональности для улучшения разбиения программы на модули. AOP и Spring - взаимодополняющие технологии, которые позволяют решать сложные проблемы путем разделения функционала на отдельные модули. АОП предоставляет возможность реализации сквозной логики - т.е. логики, которая применяется к множеству частей приложения - в одном месте и обеспечения автоматического применения этой логики по всему приложению. Подход Spring к АОП заключается в создании 'динамических прокси' для целевых объектов и 'привязывании' объектов к конфигурированному совету для выполнения сквозной логики."
+}
+,{
+  question: "Почему Spring желает создавать прокси?",
+  answer: "Потому что это позволяет Spring дать вашим компонентам дополнительные функции без изменения кода. В сущности, это то, что является аспектно-ориентированным (или: AOP) программированием.Давайте рассмотрим самый популярный пример AOP — аннотацию Spring @Transactional."
+}
+,{
+  question: "В чем разница между Сквозной Функциональностью (Cross Cutting Concerns) и АОП (аспектно оринтированное программирование)?",
+  answer: "Сквозная Функциональность — функциональность, которая может потребоваться вам на нескольких различных уровнях — логирование, управление производительностью, безопасность и т.д.АОП — один из подходов к реализации данной проблемы"
+}
+,{
+  question: "Почему возвращаемое значение при применении аспекта @Around может потеряться? Назовите причины.",
+  answer: "Метод, помеченный аннотацией @Around, должен возвращать значение, которое он (метод) получил из joinpoint.proceed()@Around('trackTimeAnnotation()')<br>public Object around(ProceedingJoinPoint joinPoint) throws Throwable{<br>long startTime = System.currentTimeMillis();<br>Object retVal = joinPoint.proceed();<br>long timeTaken = System.currentTimeMillis() - startTime;<br>logger.info('Time taken by {} is equal to {}',joinPoint, timeTaken);<br>return retVal;<br>}"
+}
+,{
+  question: "Что такое Aspect в АОП?",
+  answer: "Аспект (англ. aspect) - модуль или класс, реализующий сквозную функциональность. Аспект изменяет поведение остального кода, применяя совет в точках соединения, определённых некоторым срезом.@Aspect<br>@Component<br>public class MyAspect {<br>...<br>}"
+}
+,{
+  question: "Что такое Advice в АОП?",
+  answer: "Совет (англ. advice) - фрагмент кода, который должен выполняться в отдельной точке соединения (Pointcut). Существует несколько типов советов, совет может быть выполнен до, после или вместо точки соединения.Before — перед вызовом метода<br>After — после вызова метода<br>After returning — после возврата значения из функции<br>After throwing — в случае exception<br>After finally — в случае выполнения блока finally<br>Around — можно сделать пред., пост., обработку перед вызовом метода, а также вообще обойти вызов метода.на один Pointcut можно «повесить» несколько Advice разного типа."
+}
+,{
+  question: "Что такое Pointcut в АОП?",
+  answer: "Срез (англ. pointcut) - набор точек соединения. Срез определяет, подходит ли данная точка соединения к данному совету. Самые удобные реализации АОП используют для определения срезов синтаксис основного языка (например, в AspectJ применяются Java-сигнатуры) и позволяют их повторное использование с помощью переименования и комбинирования.<br>@Pointcut('execution(public * com.example.demoAspects.MyService.*(..))')<br>public void callAtMyServicePublic() { }"
+}
+,{
+  question: "Что такое JointPoint в АОП?",
+  answer: "Точка соединения (англ. joinpoint) - это четко определенная точка в выполняемой программе, где следует применить совет. Типовые примеры точек соединения включают обращение к методу, собственно Method Invocation, инициализацию класса и создание экземпляра объекта. Многие реализации АОП позволяют использовать вызовы методов и обращения к полям объекта в качестве точек соединения."
+}
+,{
+  question: "Что такое weaving, target и introduction в АОП?",
+  answer: "Связывание(англ. weaving) представляет собой процесс действительной вставки аспектов в определенную точку кода приложения. Для решений АОП времени компиляции это делается на этапе компиляции, обычно в виде дополнительного шага процесса сборки. Аналогично, для решений АОП времени выполнения связывание происходит динамически во время выполнения. В AspectJ поддерживается еще один механизм связывания под названием связывание во время загрузки (load-time weaving - LTW), который перехватывает лежащий в основе загрузчик классов JVM и обеспечивает связывание с байт-кодом, когда он загружается загрузчиком классов.Цель(англ. target) - это объект, поток выполнения которого изменяется каким-то процессом АОП. На целевой объект часто ссылаются как на объект, снабженный советом.Внедрение (англ. introduction, введение) - представляет собой процесс, посредством которого можно изменить структуру объекта за счет введения в него дополнительных методов или полей, изменение иерархии наследования для добавления функциональности аспекта в инородный код. Обычно реализуется с помощью некоторого метаобъектного протокола (англ. metaobject protocol, MOP)."
+}
+,{
+  question: "В чем разница между Spring AOP и AspectJ АОП?",
+  answer: "AspectJ де-факто является стандартом реализации АОП. Реализация АОП от Spring имеет некоторые отличия:Spring AOP немного проще, т.к. нет необходимости следить за процессом связывания.Spring AOP поддерживает аннотации AspectJ, таким образом мы можем работать в спринг проекте похожим образом с AspectJ проектом.Spring AOP поддерживает только proxy-based АОП и может использовать только один тип точек соединения - Method Invocation. AspectJ поддерживает все виды точек соединения.Недостатком Spring AOP является работа только со своими бинами, которые существуют в Spring Context."
+}
+,{
+  question: "Что такое Advice в Spring?",
+  answer: "Advice - это действие, предпринятое в данной точке соединения. AOП использует Advice в качестве перехватчика до завершения выполнения метода."
+}
+,{
+  question: "Каковы типы рекомендаций для структуры Spring?",
+  answer: "До: Это советы, которые выполняются до методов joinpoint. Они помечены знаком @before.После возврата: они выполняются после того, как метод joinpoint завершит выполнение без проблем. Они помечены знаком аннотации @AfterReturning.После выполнения: Они выполняются только в том случае, если метод joinnpoint заканчивается созданием исключения. Они помечены с помощью метки аннотации @AfterThrowing.После: Они выполняются после метода joinpoint, независимо от того, как он завершается. Они помечены знаком @After.Вокруг: Они выполняются до и после точки соединения и помечаются с помощью метки @Around аннотации."
+}
+,{
+  question: "Что такое Weaving?",
+  answer: "Weaving Spring - это процесс связывания элементов с другими типами приложений или объектами для создания рекомендуемых объектов."
+}
+,{
+  question: "Что такое прокси-объекты и какие типы прокси-объектов может создавать Spring?",
+  answer: "Прокси это специальный объект, который имеет такие же публичные методы как и бин, но у которого есть дополнительная функциональность.Два вида прокси:JDK dynamic proxy — динамическое прокси. API встроены в JDK. Объекты создаются на основе интерфейсов.CGLib proxy — не встроен в JDK. Используется когда интерфейс объекта недоступен, он создает классы наследники.Плюсы прокси-объектов:Позволяют добавлять доп. логику — управление транзакциями, безопасность, логированиеОтделяет некоторый код(логирование и т.п.) от основной логики"
+}
+,{
+  question: "Как Spring AOP создает прокси-объекты?",
+  answer: "для создания прокси объектов может использоваться как JDK так и CGLib, но предпочтение должно отдаваться JDK. И, если класс имеет хотя бы один интерфейс, то именно JDK dynamic proxy и будет использоваться (хотя это можно изменить, явно задав флаг proxy-target-class). При создании прокси объекта с помощью JDK на вход передаются все интерфейсы класса и метод для имплементации нового поведения. В результате получаем объект, который абсолютно точно реализует паттерн Proxy. Все это происходит на этапе создания бинов, поэтому, когда начинается внедрение зависимостей, то в реальности внедрен будет этот самый прокси-объект. И все обращения будут производиться именно к нему. Но выполнив свою часть функционала, он обратиться к объекту исходного класса и передаст ему управление. Если же этот объект сам обратиться к одному из своих методов, то это будет уже прямой вызов без всяких прокси."
+}
+,{
+  question: "Нужно ли Spring использовать прокси Cglib?",
+  answer: "Прокси являются выбором по умолчанию при программировании AOP с помощью Spring. Однако вы не ограничены использованием прокси, вы также можете пройти полный маршрут AspectJ, который при желании изменяет ваш фактический байт-код."
+}
+,{
+  question: "Что на самом деле выполнится (с точки зрения транзакций), если вызвать method1()?",
+  answer: "public class MyServiceImpl {@Transactional<br>public void method1() {<br>//do something<br>method2();<br>}@Transactional (propagation=Propagation.REQUIRES_NEW)<br>public void method2() {<br>//do something<br>}}В связи с тем, что для поддержки транзакций через аннотации используется Spring AOP, в момент вызова method1() на самом деле вызывается метод прокси объекта. Создается новая транзакция и далее происходит вызов method1() класса MyServiceImpl. А когда из method1() вызовем method2(), обращения к прокси нет, вызывается уже сразу метод нашего класса и, соответственно, никаких новых транзакций создаваться не будет"
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

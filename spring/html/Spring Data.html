@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое Spring Data",
+  answer: "Spring Data — дополнительный удобный механизм для взаимодействия с сущностями базы данных, организации их в репозитории, извлечение данных, изменение, в каких то случаях для этого будет достаточно объявить интерфейс и метод в нем, без имплементации.CrudRepository - обеспечивает функции CRUD<br>PagingAndSortingRepository - предоставляет методы для разбивки на страницы и сортировки записей<br>JpaRepository - предоставляет связанные с JPA методы. При этом JpaRepository содержит полный API CrudRepository и PagingAndSortingRepository"
+}
+,{
+  question: "Что такое Spring Repository",
+  answer: "Основное понятие в Spring Data — это репозиторий. Это несколько интерфейсов которые используют JPA Entity для взаимодействия с ней. Так например<br>интерфейс<br>public interface CrudRepository<T, ID extends Serializable> extends Repository<T, ID>обеспечивает основные операции по поиску, сохранения, удалению данных (CRUD операции)T save(T entity);<br>Optional findById(ID primaryKey);<br>void delete(T entity);и др. операции.Есть и другие абстракции, например PagingAndSortingRepository.Т.е. если того перечня что предоставляет интерфейс достаточно для взаимодействия с сущностью, то можно прямо расширить базовый интерфейс для своей сущности, дополнить его своими методами запросов и выполнять операции."
+}
+,{
+  question: "Имени метода Spring Data",
+  answer: "Запросы к сущности можно строить прямо из имени метода. Для этого используется механизм префиксов find...By, read...By, query...By, count...By, и get...By, далее от префикса метода начинает разбор остальной части. Вводное предложение может содержать дополнительные выражения, например, Distinct. Далее первый By действует как разделитель, чтобы указать начало фактических критериев. Можно определить условия для свойств сущностей и объединить их с помощью And и Or.В документации определен весь перечень, и правила написания метода. В качестве результата могут быть сущность T, Optional, List, Stream"
+}
+,{
+  question: "Специальные параметры Spring Data",
+  answer: "В методах запросов, в их параметрах можно использовать специальные параметры Pageable, Sort, а также ограничения Top и First.Pageable - содержит номер страницы (offset) и количество элементов на странице (limit)<br>Sort - сортировка по определенному полю, можно добавить в Pageable<br>Top - последний элемент<br>First - первый элемент"
+}
+,{
+  question: "Что делает @Query",
+  answer: "Если нужен специфичный метод или его реализация, которую нельзя описать через имя метода, то это можно сделать через некоторый Customized интерфейс ( CustomizedEmployees) и сделать реализацию вычисления. А можно пойти другим путем, через указание запроса (HQL или SQL), как вычислить данную функцию.Для моего примера c getEmployeesMaxSalary, этот вариант реализации даже проще. Я еще усложню его входным параметром salary. Т.е. достаточно объявить в интерфейсе метод и запрос вычисления.@Repository<br>public interface CustomizedEmployeesCrudRepository extends CrudRepository<Employees, Long>, CustomizedEmployees<Employees> {@Modifying<br>@Query('select e from Employees e where e.salary > :salary')<br>List<Employees> findEmployeesWithMoreThanSalary(@Param('salary') Long salary, Sort sort);}запросы могут быть и модифицирующие, для этого к ним добавляется еще аннотация @Modifying"
+}
+,{
+  question: "Конфигурация Spring Data",
+  answer: "Для работы с Spring Data JPA нам надо создать два beans-компонента: EntityManagerFactory и JpaTransactionManager.<br>@EnableJpaRepositories: сообщает Spring Data JPA, что нужно искать классы репозитория в указанном пакете (net.codejava) для внедрения соответсвующего кода во время выполнения.<br>@EnableTransactionManagement: сообщает Spring Data JPA, чтобы тот генерировал код для управления транзакциями во время выполнения.<br>В этом классе первый метод создаёт экземпляр EntityManagerFactory для управления Persistence Unit нашей SalesDB (это имя указано выше в persistence.xml).<br>Последний метод создаёт экземпляр JpaTransactionManager для EntityManagerFactory, созданный методом ранее.<br>Это минимальная необходимая конфигурация для использования Spring Data JPA."
+}
+,{
+  question: "Какие проекты включены в Spring Data",
+  answer: "• Spring Data JDBC - реализует репозитории для подключения к реляционной БД с помощью JDBC. Не путать с низкоуровневым Spring JDBC, просто упрощающим подключение по JDBC;• Spring Data JPA - позволяет подключаться к реляционным БД с помощью JPA и выбрав Hibernate или EclipseLink в качестве JPA Provider-а;• Spring Data R2DBC - специальный модуль для подключения к реляционным БД с асинхронным драйвером (H2, PostgreSQL, MS SQL) на реактивной основе с помощью технологии R2DBC;• Spring Data MongoDB - позволяет подключаться к документ-ориентированной MongoDB; • Spring Data REST - совсем «Дзен», позволяет элементарно создать REST-интерфейс репозитория, основана на принципах HATEOAS;• Spring Data Key Value - корневой проект для подключения к Key-Value NoSQL-базам данных. Также содержит дефолтную реализацию Key-Value-хранилища на основе HashMap (да-да!);• Spring Data Redis - соответственно, для подключения к Redis. Использует абсолютно такие же подходы, что и Spring Data Key Value;• и многие другие, включая поддерживаемые сообществом."
+}
+,{
+  question: "Spring Data Redis Repositories",
+  answer: "Разрабатывать приложения со Spring Data будем, естественно, через Spring Boot. Представим, что мы сгенерировали Spring Boot-проект (например, с помощью Spring Initializr) и добавим туда зависимость стартера:<dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-data-redis</artifactId> </dependency>В лучших традициях Spring Boot добавление одной только этой зависимости включает/подключает следующие технологии и библиотеки:• Spring Data Redis - ну, ради этого, собственно, и написан стартер. Вводит различные *Operations, а также аннотацию @RedisHash;• Spring Data Key Value - про него мы уже сказали, он вводит абстракцию KeyValueRepository;• Spring Data - вводит собственную аннотацию @Id;• Lettuce - специальный проект Pivotal для непосредственного подключения к Redis. Использует Netty и Project Reactor (RxJava - опциональна, по желанию).• Spring Tx для управления транзакциями. Да, всё так - можно делать транзакции на Redis-е. Но, к сожалению, работа с транзакциями должна быть выключена при работе с репозиториями."
+}
+,{
+  question: "Spring Data Redis как работает",
+  answer: "Объект, который будет храниться в Redis@RedisHash('employee')<br>public class Person {<br>@Id private String id;<br>private String firstName;<br>private String lastName;<br>}<br>Это код очень похож на JPA Entity, но имеет некоторые отличия. Во-первых, аннотация @Id - это совсем не JPA-аннотация, а собственная аннотация Spring Data, служит для поддержания абстракций Spring Data.Другая аннотация - @RedisHash, это уже аннотация из Spring Data Redis, синоним аннотации @KeySpace в Spring Data Key Value. C помощью неё можно задать пространство ключей - key space. Можно считать, что это что-то вроде таблицы с sequence в терминах SQL или коллекции в терминах MongoDB. Что будет представлять key space в Redis, мы узнаем совсем скоро.<br>Ставить эту аннотацию не обязательно - считается, что она стоит по умолчанию с именем класса, т. е. @RedisHash('ru.full.pakcage.name.Person').public interface PersonRepository extends KeyValueRepository<Person, String> {<br>List<Person> findByLastName(String lastName);<br>}KeyValueRepository - интерфейс из Spring Data Key Value, который в частности наследуется от PagingAndSortingRepositry, а он в свою очередь от CrudRepository, который является частью уже Spring Data.Реализацию метода findByLastName напишет за вас Spring Data. И встаёт логичный вопрос - а как будет реализован поиск, если нет никаких индексов? Да, всё верно - будет реализован полным поиском со сложностью o(n).И, тем не менее, есть возможность организовать с помощью структур Redis подобный индекс<br>@Indexed private String lastName;"
+}
+,{
+  question: "Spring Data Redis Operations",
+  answer: "Корневым интерфейсом является RedisOperations и из него можно получить все остальные, которые предоставляются на большинство типов данных Redis. С помощью таких классов можно более специфично реализовывать mapping сущностей, а также более эффективно утилизировать место в Redis.private final RedisOperations<String, String> ops;public SimplePerson findById(String id) {<br>String name = ops.opsForValue().get(id);<br>return new SimplePerson(id, name);<br>}<br>Обратите внимание, что мы из корневого класса RedisOperations получаем операции для работы со значениями .opsForValue()."
+}
+,{
+  question: "Spring Data MongoDB",
+  answer: "MongoDB — это документоориентированная NoSQL СУБД, которая хранит данные в JSON-подобном формате.Интеграция Spring Data и MongoDB предоставляется Spring для облегчения взаимодействия обоих и удобства разработчиков, избавляя от необходимости написания множества запросов для вставки, обновления и удаления.<br>Ниже приведены некоторые из возможностей, предоставляемых проектом Spring Data MongoDB:Spring Data позволяет использовать как класс @Configuration, так и XML-конфигурацию.Иерархия исключений Data Access Spring используется для трансляции исключения.Интегрированное сопоставление между Java POJO и документом MongoDB.Класс MongoTemplate, который упрощает использование распространенных операций MongoDB.В дополнение к MongoTemplate, можно использовать<br>классы MongoReader и MongoWriter для низкоуровневого отображения.MongoRepository"
+}
+,{
+  question: "Что такое JDBCTemplate",
+  answer: "JbcTemplate - базовый класс, который управляет обработкой всех событий и связями с БД посредством sql запросов. При этом все пишется программистом, не автоматизированно"
+}
+,{
+  question: "Как настраивается соединение с БД в Spring?",
+  answer: "Используя datasource 'org.springframework.jdbc.datasource.DriverManagerDataSource'."
+}
+,{
+  question: "Как сконфигурировать JNDI не через datasource в applicationContext.xml?",
+  answer: "Используя 'org.springframework.jndi.JndiObjectFactoryBean'"
+}
+,{
+  question: "Каким образом можно управлять транзакциями в Spring?",
+  answer: "Транзакциями в Spring управляют с помощью Declarative Transaction Management (программное управление). Используется аннотация @Transactional для описания необходимости управления транзакцией. В файле конфигурации нужно добавить настройку transactionManager для DataSource."
+}
+,{
+  question: "Каким образом Spring поддерживает DAO?",
+  answer: "Spring DAO предоставляет возможность работы с доступом к данным с помощью технологий вроде JDBC, Hibernate в удобном виде. Существуют специальные классы: JdbcDaoSupport, HibernateDaoSupport, JdoDaoSupport, JpaDaoSupport.<br>Класс HibernateDaoSupport является подходящим суперклассом для Hibernate DAO. Он содержит методы для получения сессии или фабрики сессий. Самый популярный метод - getHibernateTemplate(), который возвращает HibernateTemplate. Этот темплейт оборачивает checked-исключения Hibernate в runtime-исключения, позволяя вашим DAO оставаться независимыми от исключений Hibernate."
+}
+,{
+  question: "Как интегрировать Spring и Hibernate?",
+  answer: "Для интеграции Hibernate в Spring необходимо подключить зависимости, а так же настроить файл конфигурации Spring. Т.к. настройки несколько отличаются между проектами и версиями, то смотрите официальную документацию Spring и Hibernate для уточнения настроек для конкретных технологий."
+}
+,{
+  question: "Как задаются файлы маппинга Hibernate в Spring?",
+  answer: "Через applicationContext.xml в web/WEB-INF"
+}
+,{
+  question: "Как управлять транзакциями в Spring",
+  answer: "Spring поддерживает два типа управления транзакциями:<br>Программное управление транзакциями: Вы должны управлять транзакциями с помощью программирования. Это способ достаточно гибкий, но его сложно поддерживать. Либо через использование TransactionTemplate, либо через реализацию PlatformTransactionManager напрямую. Используется, если нужно работать с небольшим количеством транзакций.Декларативное управление транзакциями: Вы отделяете управление транзакциями от бизнес-логики. Вы используете только аннотации @Transactional и конфигурацией на основе XML для управления транзакциями. Наиболее предпочтительный способ.Простая реализация PlatformTransactionManager это DataSourceTransactionManager, который на каждую транзакцию в БД будет создавать Connection.DefaultTransactionDefinition definition = new DefaultTransactionDefinition();<br>//описание транзакции, можно задавать параметры TransactionStatus status = transactionManager.getTransaction();<br>//статус транзакции<br>try {<br>fooRepository.insertFoo('name'); transactionManager.commit(status);<br>} catch (RuntimeException e) { transactionManager.rollback(status);<br>}"
+}
+,{
+  question: "Как работают Transactional в Spring",
+  answer: "Spring создает proxy для классов, объявленных аннотацией @Transactional. Proxy в большинстве случаев невидим во время выполнения. Он предоставляет способ для Spring вводить поведение 'до', 'после' или 'во время' вызовов методов в proxy-объект.Поэтому, когда мы определяем метод с @Transactional, Spring динамически создает proxy. Когда клиенты совершают вызовы в наш объект, вызовы перехватываются, а поведение будет вводиться через механизм proxy.Когда Spring загружает определения бина и настроен на поиск аннотаций @Transactional, он создаст эти proxy-объекты вокруг нашего бина. Эти proxy-объекты являются экземплярами классов, которые будут автоматически генерироваться во время выполнения. Поведение этих proxy-объектов по умолчанию при вызове метода — это просто вызвать тот же метод в 'target' бин (т.е. наш бин).Proxy также могут быть снабжены 'перехватчиками', и, когда они присутствуют, эти 'перехватчики' будут вызываться proxy-сервером до того, как он вызовет наш целевой метод бина. Для целевого бина, аннотированного с помощью @Transactional, Spring создаст TransactionInterceptor и передаст его созданному proxy-объекту. Поэтому, когда мы вызываем метод из клиентского кода, мы вызываем метод на proxy-объекте, который сначала вызывает TransactionInterceptor (который начинает транзакцию), который, в свою очередь, вызывает метод в нашем целевом бине. Когда вызов завершается, TransactionInterceptor принимает и завершает/откатывает транзакцию.<br>Обычно управление транзакциями происходит в service слое приложения.Начиная с версии 3.1 Spring ввел аннотацию @EnableTransactionManagement, которая используется с аннотацией @Configuration над классами и включает поддержку транзакций."
+}
+,{
+  question: "Понятие транзакционная модель",
+  answer: "Транзакционная модель функционирует на уровне транзакций. В рамках одного соединения может быть много транзакций. От одного пользователя может быть много одновременных и независимых соединений а также конкурентных транзакций тоже может быть много.Если взять за основу такие известные реляционные базы как MySQL и PostgreSQL — одно соединение одновременно держать две разные транзакции открытыми не может, т.к. одно соединение — только одна открытая транзакция. Нет возможности в рамках одного соединения выполнять одновременно несколько команд. Они предоставляют неблокирующий вызов, но не дождавшись конца ответа новые запросы отправлять у вас не получится.Например в MySQL каждый 'thread' держит соединение. Он не отслеживает, каким процессом это соединение открыто, т.е. ему без разницы, один процесс открыл множество соединений или это множество процессов. MySQL выполняет запросы параллельно, в рамках 'тредной модели', но существуют блокировки."
+}
+,{
+  question: "Какие бывают транзакционные модели ?",
+  answer: "1. Local — голый JDBC<br>2. Programmatic — JPA<br>3. Declarative — Spring (когда мы ставим аннотацию)"
+}
+,{
+  question: "Что же происходит внутри Spring при объявлении аннотации @Transactional ?",
+  answer: "В Spring есть такое понятие как SpringDefaultNameConvension — именование бинов по умолчанию.По умолчанию Spring ищет есть ли у нас бин с именем TransactionManager. Если есть, то Spring его найдет и сам подключит, нам не надо его дополнительно настраивать.Но если у нас несколько TransactionManager, тогда мы должны указать явно. Дальше указываем дополнительные параметры, такие как уровни изоляции транзакций, свойство propagation и т.д.1. Поставили аннотацию и объявили TransactionManagerTransactionManager создает EntityManager, если он необходим, и осуществляет старт новой транзакции. В зависимости от того, выполняется ли хоть одна транзакция в текущий момент или нет и параметра 'propagation' у метода, аннотированного @Transactional, создается новая транзакция.Алгоритм создания новой транзакции:<br>— создается новый EntityManager<br>— EntityManager привязывается к 'текущему потоку Thread'<br>— берется соединение из пула соединений БД<br>— это соединение привязывается к 'текущему потоку Thread' при помощи ThreadLocal (Класс ThreadLocal предоставляет локальные переменные потока. Каждый поток имеет свою собственную инициализированную копию переменной)Аннотация @EnableTransactionManagement означает, что классы, помеченные @Transactional, должны быть обернуты аспектом транзакций.2. Прописываем EntityManagerFactory если используем JPA, прописываем DataSource если JDBC и т.д.3. Поставить тег <tx:annotation-driven proxy-target-class='true'/> — именно он запускает весь механизм работы Spring JTA !По умолчанию: proxy-target-class='false'."
+}
+,{
+  question: "Что такое EntityManager proxy.",
+  answer: "Например, когда происходит вызов метода entityManager.persist(), он не вызывается напрямую у EntityManager. Вместо этого вызывается прокси, который достает текущий EntityManager из потока, в который его положил менеджер транзакций.<br>Подход через аннотации намного удобен и удобочитаем и поэтому рекомендуется использовать именно его."
+}
+,{
+  question: "Что делает proxy-target-class",
+  answer: "Мы знаем что Spring работает по принципу проксирования:<br>1. Для бинов он создает proxy<br>2. Используется подход AOP для добавления какого-то поведения.<br>   3.1 Spring начинает работать, выполнять свои классы и первый из них это AopAutoProxyConfigurer, который вызывает метод configureAutoProxyCreator().<br>   3.2 Потом создается класс TransactionInterceptor.<br>   3.3 Далее Spring находит наш TransactionManager и подключает его к TransactionInterceptor.<br>   3.4 Spring регистрирует TransactionInterceptor как бин.Аннотация @Transactional определяет область действия одной транзакции БД. Транзакция БД происходит внутри области действий persistence context. Persistence context в JPA является EntityManager, который использует внутри класс Session ORM-фреймворка Hibernate (если использовать Hibernate как persistence провайдер).Один объект EntityManager может быть использован несколькими транзакциями БД."
+}
+,{
+  question: "Как @Transactional парсится и что Spring с ней делает ?",
+  answer: "У Spring есть специальный парсер для этого — SpringTransactionAnnotationParser (используется по умолчанию)."
+}
+,{
+  question: "Что делает TransactionInterceptor ?",
+  answer: "1. Считывает атрибуты (параметры), которые были у аннотации @TransactionaltxAttr = getTRansactionAttributeSource().getTransactionAttribute(invocation.getMethod(),targetClass);2. Предоставляет интерфейс PlatformTransactionManager — основной интерфейс для всех TransactionManager (TransactionManager взаимодействует непосредственно с БД для управлением транзакций)PlatformTransactionManager ptm = determineTransactionManager(txAttr);Spring сам по себе транзакциями не управляет. Он является прослойкой между вашим декларативным описанием и конечной базой данных. Он все делегирует базе данных. Spring — это просто удобный для нас способ объявить или 'менеджить' транзакции, но внутри себя Spring не содержит чего-то такого, что можно было бы назвать транзакцией.3. Идет создание транзакцийTransactionInfo trInfo = createTransactionIfNecessary(ptm, txAttr, joinpointIdentification);В зависимости от того, как мы сконфигурировали атрибуты, транзакцию можно начать или нет.4. Происходит вызов основного метода<br>   try{<br>   retVal = invocation.proceed();<br>   } catch(Throwable ex) {<br>   completeTransactionAfterThrowinf(trInfo, ex);<br>   }где invocation.proceed()- вызов основного транзакционного метода с кодом5. Происходит commit транзакции если нет exceptioncommitTransactionAfterReturning(trInfo);"
+}
+,{
+  question: "Пример работы JPATransactionManager.",
+  answer: "1. получили EntityManagerFactory<br>2. получили DataSource<br>3. исходя из диалекта (какая у нас БД) создается новая транзакция beginTransaction()т.е. Spring ничего не делает, он просто 'говорит' что знает какая у нас БД и предоставляет нам соответствующий для неё диалект и т.д.<br>4. зарегистрировали полученное соединение в ThreadLocal объекте.Все соединения и транзакции являются потокозависимыми (все выполняется в текущем потоке), т.е. когда мы начали транзакцию в своем потоке мы не можем ее как-то напрямую расширить на другой поток (в этом случае будет начинаться новая транзакция). Разве что можно отключить транзакцию от потока и 'приаттачить' к другому.<br>   5.beginTransaction()prepareTransaction()commitTransaction()"
+}
+,{
+  question: "Что знаете про TransactionDefinition и TransactionStatus.",
+  answer: "Немаловажными компонентами являются интерфейсы TransactionDefinition и TransactionStatus.TransactionDefinition содержит в себе конфигурацию транзакции, уровень изоляции и propagation.TransactionStatus возвращает статус текущей транзакции."
+}
+,{
+  question: "Как же транзакции работают в приложениях ?",
+  answer: "Существует стандарт XA (eXtended Architecture), который связывает наш источник данных (dataSource) с TransactionManager. Базы данных должны реализовывать этот стандарт внутри себя, чтобы TransactionManager мог управлять ими и создавать транзакции.Этот стандарт поддерживает 2 типа коммитов:<br>1. однофазный — работает с одним источником данных (1 база данных) — только 1 транзакция — либо выполнилась либо нет.2. двухфазный — работает с 2 или более источником данных — имеется несколько DataSource, внутри каждого есть своя транзакция и есть 1 глобальная транзакция для этих внутренних транзакцийТранзакции работают в своем потоке.Есть такой термин как transaction context — он обязательно имеет id, который обозначает, что транзакция работает в таком-то контексте. Также может иметь другие параметры."
+}
+,{
+  question: "Какие бывают TransactionManager ?",
+  answer: "1. DataSourceTransactionManager — для JDBC<br>2. HibernateTransactionManager — для Hibernate<br>3. JPATransactionManager — для JPA (обычно подходит для приложений, которые используют один JPAEntityManagerFactory для доступа к транзакционным данным)<br>4. JTATransactionManager — для JTA (обычно необходим для доступа к нескольким транзакционным ресурсам в рамках одной транзакции)<br>5. JDOTransactionManager<br>6. JmsTransactionManager<br>7. WebLogicJtaTransactionManager<br>8. WebSphereUowTransactionManager — реализация PlatformTransactionManager для WebSphere<br>9. CallbackPreferringPlatformTransactionManager — предоставляет методы для выполнения обратного вызова в транзакции<br>10. PlatformTransactionManager — центральный интерфейс в транзакционной инфраструктуре Spring<br>11. AbstractPlatformTransactionManager — реализует определенное поведение propagation и заботится об обработке синхронизации транзакций<br>12. ResourceTransactionManager — в основном используется для абстрактного самоанализа менеджера транзакций, давая клиентам подсказку о том, какой менеджер транзакций им был предоставлен и над каким конкретным ресурсом работает менеджер транзакций<br>13. CciLocalTransactionManager<br>14. OC4JJtaTransactionManager — вариант JtaTransactionManager для Oracle OC4J (10.1.3 и выше)"
+}
+,{
+  question: "Типы TransactionManager",
+  answer: "1. Локальные транзакции — работают только с одним ресурсом (используют однофазный коммит)<br>2. Глобальные транзакции — работают с 2 или более ресурсами (используют двухфазный коммит). Используют XA стандарт.а. JtaTransactionManagerb. OC4JJtaTransactionManagerc. WebLogicJtaTransactionManagerd. WebSphereUowTransactionManagerОни являются двухфазными, т.е. с их помощью можно одновременно управлять транзакциями и в БД и например в JMS. Т.е мы хотим чтобы данные записались в БД и были отправлены в JMS как 'одно целое'.<br>3. Distributed транзакции:Например мы имеем сложное по структуре приложение, расположенное в разных местах: одна Java машина в одном месте, другая Java машина в другом месте, в третьем третья и т.д.). Это позволяет для всех них иметь одну транзакцию. На данный момент Spring такого сделать не cможет.С помощью аннотаций можно указать в коде какой менеджер транзакций вы хотите использовать."
+}
+,{
+  question: "Какие есть типы транзакций ?",
+  answer: "1) Physical — единая транзакция, которая действует сразу для нескольких методов.<br>2) Logical — транзакция каждого метода. Логичекие транзакции могут быть внутри одной Physical транзакции. Эти внутренние тарнзакции (Logical) могут влиять на внешнюю (Physical): например, если одна из внутренних транзакций выбросила exception, то вся внешняя транзакция м.б. отменена и т.д.Про то, что транзакции должны соответствовать принципу ACID и уровни изоляции транзакций я говорить не буду. На просторах интернета немало сказано на этот счет."
+}
+,{
+  question: "Свойств propagation для транзакций",
+  answer: "1. MANDATORY — использует существующую транзакцию. Если ее нет — бросает exception. Если используется для класса, то действует на все public методы.2. NESTED — вложенная транзакция (подтранзакция). Подтвержается вместе с внешней транзакцией. Если нет существующей транзакции — работает как REQUIRED.Можно применять в таких случаях, когда: Сработает — норм, не сработает — тоже норм. Самое главное чтобы внешняя транзакция не пострадала.3. NEVER — означает, что данный метод не должен выполняться в транзакции. Если транзакция запущена — бросает exception.4. NOT_SUPPORTED — означает не выполнять в текущей транзакции. Если транзакция запущена — она останавливается на время выполнения метода. Метод выполняется вне транзакции. Когда метод выполнился — транзакция запускается.5. REQUIRED — (по умолчанию) означает, что если запущена транзакция — выполнять внутри нее, иначе создает новую транзакцию. Если ошибка в запросе, то в базу ничего на запишется.6. REQUIRES_NEW — создает в любом случае новую транзакцию. Если запущена существующая транзакция — она останавливается на время выполнения метода, новый метод выполняется в новой транзакции, и дальше выполняется внешняя транзакция, если она есть.7. SUPPORTS — может выполняться внутри транзакции, если она запущена, иначе выполнять без транзакции (новую транзакцию не создает), т.е. методу не важно, будет транзакция или нет, он в любом случае выполнится, но если будет транзакция, то он выполнится внутри нее."
+}
+,{
+  question: "Параметры аннотации @Transactional",
+  answer: "@Transactional(<br>value = 'testTransaction',<br>isolation = Isolation.SERIALIZABLE,<br>propagation = Propagation.SUPPORTS,<br>readOnly = true,<br>timeout = 1,<br>rollbackFor = 'IOException')readOnly — имеет значение только внутри транзакции. Если операция происходит вне контекста транзакции, флаг просто игнорируетсяtimeout — выставляется именно для транзакций (надо вставлять в том месте, где начинается новая транзакция). По умолчанию, если возникает RuntimeException — то транзакция будет откатываться. Если checked exception — то транзакция не будет откатываться. По умолчанию используется таймаут, установленный по умолчанию для базовой транзакционной системы.rollbackFor — указываем роллбэк для определенного exceptionrollbackForClassNamenoRollbackFor — Указывает, что откат не должен происходить, если целевой метод вызывает исключение, которое вы укажете.<br>noRollbackForClassName"
+}
+,{
+  question: "Нюанс транзакции Spring",
+  answer: "Spring автоматически откатывает транзакции для unchecked (Runtime) исключений:Например если один транзакционный метод вызывает другой транзакционный метод в другом классе и этот внутренний вызов выбрасывает Runtime exception, то вся транзакция целиком будет отменена. В этом случае можно использовать параметр noRollBackFor или выполнить внутреннюю транзакцию в новой транзакции (свойства propagation).Аннотация @Transactional будет проигнорирована и не выбросит исключения если применять ее к private, protected или default модификаторами доступа.С помощью<br>TransactionSynchronizationManager.isActualTransactionActive() можно отслеживать какую-либо внешнюю транзакцию, если она у вас есть."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

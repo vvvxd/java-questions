@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "1)Что такое Reactive Streams?",
+  answer: "В конце 2013 года собралась группа гениальных инженеров из компаний Lightbend,<br>Netflix и Pivotal, чтобы обсудить описанную проблему и представить решение сообществу JVM. После года напряженной работы мир увидел первый проект стандарта Reactive Streams. В нем не содержалось ничего необычного – основная идея<br>заключалась в стандартизации уже знакомых шаблонов реактивного программирования."
+}
+,{
+  question: "2)Назовите основные интерфейсы.",
+  answer: "Publisher:<br>Он представляет производителя данных/источник данных и имеет один метод, который позволяет подписчику зарегистрироваться на издателе.public interface Publisher<T> {<br>public void subscribe(Subscriber<? super T> s);<br>}Subscriber:<br>Он представляет потребителя и имеет следующие методы:public interface Subscriber<T> {<br>public void onSubscribe(Subscription s);<br>public void onNext(T t);<br>public void onError(Throwable t);<br>public void onComplete();<br>}onSubscribe должны вызываться Publisher перед началом обработки и использоватся для передачи на Subscription объекта от Publisher до SubscriberonNext используется для того, чтобы сигнализировать о том, что был отправлен новый элементonError используется для того, чтобы сигнализировать о том, что произошел сбой Publisher и больше никаких элементов не будетonComplete используется для того, чтобы сигнализировать, что все элементы были успешно отправленыSubscription:<br>Subscription содержат методы, которые позволяют клиенту управлять выдачей элементов Publisher (т.е. обеспечивать поддержку противодавления).public interface Subscription {<br>public void request(long n);<br>public void cancel();<br>}request позволяет Subscriber сообщить, Publisher сколько дополнительных элементов будет опубликованоcancel позволяет подписчику отменить дальнейшую отправку элементов PublisherProcessor:<br>Если объект должен преобразовывать входящие элементы, а затем передавать их другому Subscriber, требуется реализация интерфейса Processor. Он действует и как Subscriber ,и как Publisher.<br>public interface Processor<T, R> extends Subscriber<T>, Publisher<R> { }"
+}
+,{
+  question: "3)Что такое Back-pressure ?",
+  answer: "Мы возвращаем не объект, а 'обещание' объекта — Publisher, который будет отдавать объекты, как только они появятся. Отдавать мы их будем Subscriber-у — тому, кто подписывается на Publisher.Подписчик может быть как один, так и много. Subscriber и получает объекты. Причем подписчик может регулировать скорость потока, это и называется Back-pressure.<br>Как уже говорилось выше, основная концепция реактивного программирования — это неблокирующий ввод/вывод.<br>Слушать поток означает подписаться на него. Т.е. функции, которые мы определили — это наблюдатели (Observers). А поток является субъектом, который наблюдают. Этот подход называется Observer Design Pattern.<br>Если у нас есть Publisher, который отправляет события потребителю быстрее, чем он может их обработать, то, в конце концов, потребитель будет перегружен событиями, которые истощают системные ресурсы. Backpressure означает, что наш клиент должен иметь возможность сообщить производителю, сколько данных отправлять, чтобы предотвратить это, и это указано в самой спецификации."
+}
+,{
+  question: "4)Что такое TCK?",
+  answer: "Reactive Streams Technology Compatibility Kit - это набор тестов TestNG, которые должны адаптироваться и  подготавливаться для проверки конкретной реализации Publisher или Subscriber. TCK включает полный список тестовых классов, призванных охватить все правила, описанные в  стандарте Reactive Streams."
+}
+,{
+  question: "5)Какие способы есть подписаться на паблишер?",
+  answer: "1) Подписаться (слушать поток):<br>subscribe();<br>2) Сделать что-то с каждым полученным значением<br>   subscribe(Consumer<? super T> consumer);<br>3) Сделать что-то в случае исключения<br>   subscribe(Consumer<? super T> consumer, Consumer<? super Throwable> errorConsumer);<br>4) Сделать что-то по завершению<br>   subscribe(Consumer<? super T> consumer,Consumer<? super Throwable> errorConsumer,Runnable completeConsumer);"
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

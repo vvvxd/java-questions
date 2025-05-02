@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Spring Cache это",
+  answer: "Spring boot предоставляет API абстракции кэша, который позволяет нам использовать разные поставщики кэша для кэширования объектов.Когда кэширование включено, приложение сначала ищет требуемый объект в кэше, а не извлекает его из базы данных. Если он не находит этот объект в кэше, тогда доступ к нему осуществляется только из базы данных.<br>Кэширование ускоряет доступ к данным, поскольку данные извлекаются из базы данных только в первый раз, когда это необходимо. Впоследствии он извлекается из кэша. Таким образом, кэширование повышает производительность приложения.<br>Абстракция кэша работает над двумя вещами :<br>Объявление кэша: оно определяет методы, которые должны быть<br>Конфигурация кэша: резервный кэш, в котором хранятся и считываются данные."
+}
+,{
+  question: "Кэширование возвращаемого результата",
+  answer: "Что делает Spring Cache? Spring Cache просто кэширует возвращаемый результат для определённых входных параметров. Давайте это проверим. Мы поставим аннотацию @Cacheable над сервисным методом get(), чтобы кэшировать возвращаемые данные. Дадим этой аннотации название «users» (далее мы разберём, зачем это делается, отдельно).@Override<br>@Cacheable('users')<br>public User get(Long id) {<br>log.info('getting user by id: {}', id);<br>return repository.findById(id) .orElseThrow(() -> new EntityNotFoundException('User not found by id ' + id));<br>}"
+}
+,{
+  question: "Объявление ключа для кэширования",
+  answer: "Бывают ситуации, когда в кэшируемый метод приходит несколько параметров. В таком случае, бывает нужно определить параметр, по которому будет происходить кэширование. Добавим в пример метод, который будет сохранять в базу сущность, собранную по параметрам, но если сущность с таким именем уже есть, мы не будем её сохранять. Для этого мы определим параметр name как ключ для кэширования. Выглядеть это будет так:@Override<br>@Cacheable(value = 'users', key = '#name')<br>public User create(String name, String email) { log.info('creating user with parameters: {}, {}', name, email);<br>return repository.save(new User(name, email));<br>}"
+}
+,{
+  question: "Принудительное кэширование. @CachePut",
+  answer: "Бывают ситуации, когда мы хотим кэшировать возвращаемое значение для какой-то сущности, но в то же время, нам нужно обновить кэш. Для таких нужд существует аннотация @CachePut. Оно пропускает приложение в метод, при этом, обновляя кэш для возвращаемого значения, даже если оно уже закэшировано.Добавим пару методов, в которых мы будем сохранять юзера. Один из них мы пометим обычной аннотацией @Cacheable, второй — @CachePut.@Override<br>@Cacheable(value = 'users', key = '#user.name')<br>public User createOrReturnCached(User user) { log.info('creating user: {}', user);<br>return repository.save(user);<br>}@Override<br>@CachePut(value = 'users', key = '#user.name')<br>public User createAndRefreshCache(User user) { log.info('creating user: {}', user);<br>return repository.save(user);<br>}Первый метод будет просто возвращать закэшированные значения, второй — принудительно обновлять кэш. Кэширование будет осуществляться по ключу #user.name"
+}
+,{
+  question: "Удаление из кэша. @CacheEvict",
+  answer: "Иногда возникает необходимость жёстко обновить какие-то данные в кэше. Например, сущность уже удалена из базы, но она по-прежнему доступна из кэша. Для сохранения консистентности данных, нам необходимо хотя бы не хранить в кэше удалённые данные.Добавим в сервис ещё пару методов.@Override<br>public void delete(Long id) {<br>log.info('deleting user by id: {}', id); repository.deleteById(id);<br>}@Override<br>@CacheEvict('users')<br>public void deleteAndEvict(Long id) {<br>log.info('deleting user by id: {}', id); repository.deleteById(id);<br>}Первый будет просто удалять пользователя, второй тоже будет его удалять, но мы пометим его аннотацией @CacheEvict"
+}
+,{
+  question: "Группировка настроек. @Caching",
+  answer: "Иногда один метод требует нескольких настроек кэширования. Для этих целей используется аннотация @Caching. Выглядеть это может приблизительно так:@Caching(<br>cacheable = {<br>@Cacheable('users'),<br>@Cacheable('contacts')<br>},<br>put = {<br>@CachePut('tables'),<br>@CachePut('chairs'),<br>@CachePut(value = 'meals', key = '#user.email')<br>},<br>evict = {<br>@CacheEvict(value = 'services', key = '#user.name')<br>}<br>)<br>void cacheExample(User user) { }"
+}
+,{
+  question: "Гибкая настройка. CacheManager",
+  answer: "CacheManager. Он существует везде, где есть Spring Cache. Когда мы добавили аннотацию @EnableCache, такой кэш менеджер автоматически будет создан Spring.<br>Типы:<br>SimpleCacheManager — самый простой кэш-менеджер, удобный для изучения и тестирования.ConcurrentMapCacheManager — лениво инициализирует возвращаемые экземпляры для каждого запроса. Также рекомендуется для тестирования и изучения работы с кэшем, а также, для каких-то простых действий, вроде наших. Для серьёзной работы с кэшем рекомендуются имплементации ниже.JCacheCacheManager, EhCacheCacheManager, CaffeineCacheManager — серьёзные кэш-менеджеры «от партнёров», гибко настраиваемые и выполняющие задачи очень широкого спектра действия."
+}
+,{
+  question: "Настройка кэша.",
+  answer: "maximumSize — максимальный размер значений, которые может содержать кэш. При помощи этого параметра можно найти попытаться найти компромисс между нагрузкой на базу данных и на оперативную память JVM.<br>refreshAfterWrite — время после записи значения в кэш, после которого оно автоматически обновится.<br>expireAfterAccess — время жизни значения после последнего обращения к нему.<br>expireAfterWrite — время жизни значения после записи в кэш. Именно этот параметр мы определим."
+}
+,{
+  question: "JCacheCacheManager",
+  answer: "JCache (JSR 107) — это стандартный API-интерфейс для Java. Он предоставляет API для приложений, чтобы иметь возможность создавать и работать с кэшем в памяти объектов. Преимущества очевидны — не нужно концентрироваться на более тонких деталях реализации кэширования, а время лучше тратить на основную бизнес-логику приложения.JCache определяет интерфейсы, которые, конечно же, реализуются различными поставщиками, также называемыми провайдерами.<br>Oracle Coherence<br>Hazelcast<br>Infinispan<br>EHCache"
+}
+,{
+  question: "EhCacheCacheManager",
+  answer: "Ehcache это универсальная система распределённого кэширования общего назначения с открытым исходным кодом для Java-приложений и сервлетов. Ehcache создана для повышения производительности, снижения нагрузки на базу данных и упрощения масштабирования. Ehcache является наиболее широко используемой системой кэширования на основе языка Java, потому что она надежная, проверенная, полнофункциональная и интегрируется со многими популярными библиотеками и фреймворками. Ehcache предоставляет как кэширование в пределах одного экземпляра приложения, так и распределенное кэширование с данными размером в ТБ."
+}
+,{
+  question: "CaffeineCacheManager",
+  answer: "Caffeine - это переписанный на Java 8 кэш Guava, которая заменяет поддержку Guava. Если Caffeine присутствует, CaffeineCacheManager (предоставленный стартером spring-boot-starter-cache) автоматически конфигурируется. Кэши можно создать при запуске, установив свойство spring.cache.cache-names, и их можно настроить одним из следующих способов (в указанном порядке):<br>Спецификация кэша, определенная в spring.cache.caffeine.spec<br>Определен компонент com.github.benmanes.caffeine.cache.CaffeineSpec<br>Определен bean-компонент com.github.benmanes.caffeine.cache.Caffeine<br>Например, следующая конфигурация создает кэши cache1 и cache2 с максимальным размером 500 и временем жизни 10 минутspring.cache.cache-names=cache1,cache2 spring.cache.caffeine.spec=maximumSize=500,expireAfterAccess=600sЕсли определен bean-компонент com.github.benmanes.caffeine.cache.CacheLoader, он автоматически связывается с CaffeineCacheManager. Поскольку CacheLoader будет связан со всеми кэшами, управляемыми менеджером кэша, он должен быть определен как CacheLoader<Object, Object>. Автоконфигурация игнорирует любой другой универсальный тип."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

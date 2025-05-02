@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое generic? Как они реализованы в Java?",
+  answer: "Generics — это параметризованные типы. С их помощью можно объявлять классы, интерфейсы и методы, где тип данных указан в виде параметра. Обобщения добавили в язык безопасность типов.<br>Пример реализации:<br>class MyClass<T>{<br>T obj;<br>public MyClass(T obj)<br>{<br>this.obj = obj;<br>}<br>}<br>class MyClass<T><br>В угловых скобках используется T — имя параметра типа. Это имя используется в качестве заполнителя, куда будет подставлено имя реального типа, переданного классу MyClass при создании реальных типов. То есть параметр типа T применяется в классе всякий раз, когда требуется параметр типа. Угловые скобки указывают, что параметр может быть обобщен. Сам класс при этом называется обобщенным классом или параметризованным типом.<br>Далее тип T используется для объявления объекта по имени obj:<br>T obj;<br>Вместо T подставится реальный тип, который будет указан при создании объекта класса MyClass. Объект obj будет объектом типа, переданного в параметре типа T. Если в параметре T передать тип String, то экземпляр obj будет иметь тип String.<br>Рассмотрим конструктор MyClass():<br>public MyClass(T obj){ this.obj = obj; }<br>Параметр obj имеет тип T. Это значит, что реальный тип параметра obj определяется типом, переданным параметром типа T при создании объекта класса MyClass.<br>Параметр типа T также может быть использован для указания типа возвращаемого значения метода.<br>В именах переменных типа принято использовать заглавные буквы. Обычно для коллекций используется буква E, буквами K и V — типы ключей и значение (Key/Value), а буквой T (и при необходимости буквы S и U) — любой тип.<br>Обобщения работают только с объектами. Поэтому нельзя использовать в качестве параметра элементарные типы вроде int или char.<br>*Так же считаю нужным упомянуть generic методы. Это методы вида:<br>модификаторы <T, ...> возвращаемыйТип имяМетода(T t, ...)"
+}
+,{
+  question: "Принцип подстановки",
+  answer: "Принцип подстановки Барбары Лисков - специфичное определение подтипа в объектно-ориентированном программировании. Идея Лисков о «подтипе» дает определение понятия замещения: если S является подтипом T, тогда объекты типа T в программе могут быть замещены объектами типа S без каких-либо изменений желательных свойств этой программы.Тип - > Подтип<br>Number -> Integer<br>List<E> -> ArrayList<E><br>Collection<E> -> List<E><br>Iterable<E> -> Collection<E><br>Примеры отношения тип/подтип<br>Вот пример использования принципа подстановки в Java:<br>Number n = Integer.valueOf(42);<br>List<Number> aList = new ArrayList<>(); Collection<Number> aCollection = aList; Iterable<Number> iterable = aCollection;Integer является подтипом Number, следовательно, переменной n типа Number можно присвоить значение, которое возвращает метод Integer.valueOf(42)."
+}
+,{
+  question: "Ковариантность, контравариантность и инвариантность",
+  answer: "Ковариантность — это сохранение иерархии наследования исходных типов в производных типах в том же порядке. Например, если Кошка — это подтип Животные, то Множество<Кошки> — это подтип Множество<Животные>. Следовательно, с учетом принципа подстановки можно выполнить такое<br>присваивание:<br>Множество<Животные> = Множество<Кошки>Контравариантность — это обращение иерархии исходных типов на противоположную в производных типах. Например, если Кошка — это подтип Животные, то Множество<Животные> — это подтип Множество<Кошки>. Следовательно, с учетом принципа подстановки можно выполнить такое присваивание:<br>Множество<Кошки> = Множество<Животные>Инвариантность — отсутствие наследования между производными типами. Если Кошка — это подтип Животные, то Множество<Кошки> не является подтипом Множество<Животные> и Множество<Животные> не является подтипом Множество<Кошки>."
+}
+,{
+  question: "Почему Массивы в Java ковариантны?",
+  answer: "Тип S[] является подтипом T[], если S — подтип T. Пример присваивания:String[] strings = new String[] {'a', 'b', 'c'};<br>Object[] arr = strings;Мы присвоили ссылку на массив строк переменной arr, тип которой - «массив объектов». Если бы массивы не были ковариантными, нам бы это сделать не удалось. Java позволяет это сделать, программа скомпилируется и выполнится без ошибок.arr[0] = 42; // ArrayStoreException.Проблема обнаружилась на этапе выполнения программы<br>Но если мы попытаемся изменить содержимое массива через переменную arr и запишем туда число 42, то получим ArrayStoreException на этапе выполнения программы, поскольку 42 является не строкой, а числом. В этом недостаток ковариантности массивов Java: мы не можем выполнить проверки на этапе компиляции, и что-то может сломаться уже в рантайме."
+}
+,{
+  question: "Почему «Дженерики» инвариантны?",
+  answer: "List<Integer> ints = Arrays.asList(1,2,3);<br>List<Number> nums = ints;<br>// compile-time error.<br>// Проблема обнаружилась на этапе компиляции nums.set(2, 3.14);<br>assert ints.toString().equals('[1, 2, 3.14]');Если взять список целых чисел, то он не будет являться ни подтипом типаNumber, ни каким-либо другим подтипом. Он является только подтипом самого себя. То естьList <Integer>— этоList<Integer>и ничего больше. Компилятор позаботится о том, чтобы переменнаяints, объявленная как список объектов классаInteger, содержала только объекты классаIntegerи ничего кроме них. На этапе компиляции производится проверка, и у нас в рантайме уже ничего не упадет."
+}
+,{
+  question: "Если универсальный тип опущен при создании экземпляра объекта, будет ли код по-прежнему компилироваться?",
+  answer: "Поскольку до Java 5 дженериков не существовало, их можно вообще не использовать. Например, универсальные шаблоны были модернизированы для большинства стандартных классов Java, таких как коллекции. Если мы посмотрим на наш список из первого вопроса, то увидим, что у нас уже есть пример исключения универсального типа:<br>List list = new ArrayList();<br>Несмотря на возможность компиляции, все же вероятно, что компилятор выдаст предупреждение. Это потому, что мы теряем дополнительную проверку во время компиляции, которую мы получаем от использования дженериков.<br>Следует помнить, что, хотя обратная совместимость и стирание типов позволяют опускать общие типы, это плохая практика."
+}
+,{
+  question: "Чем универсальный метод отличается от универсального типа?",
+  answer: "В универсальном методе параметр типа вводится в метод, находящийся в рамках этого метода. Давайте попробуем это на примере:public static T returnType(T argument) { return argument; }Мы использовали статический метод, но при желании могли бы использовать и нестатический. Используя вывод типа (описанный в следующем вопросе), мы можем вызывать его, как любой обычный метод, без необходимости указывать какие-либо аргументы типа, когда мы это делаем."
+}
+,{
+  question: "Что такое wildcard?",
+  answer: "Wildcard — это дженерик вида <?>, что означает, что тип может быть чем угодно. Используется, например, в коллекциях, где для всех коллекций базовым типом является Сollection<?>."
+}
+,{
+  question: "Wildcards",
+  answer: "Всегда ли Generics инварианты? Нет. Приведу примеры:List<Integer> ints = new ArrayList<Integer>();<br>List<? extends Number> nums = ints;Это ковариантность. List<Integer> — подтип List<? extends Number>List<Number> nums = new ArrayList<Number>();<br>List<? super Integer> ints = nums;Это контравариантность. List<Number> является подтипом List<? super Integer>.<br>Запись вида '? extends ...' или '? super ...' — называется wildcard или символом подстановки, с верхней границей (extends) или с нижней границей (super). List<? extends Number> может содержать объекты, класс которых является Number или наследуется от Number. List<? super Number> может содержать объекты, класс которых Number или у которых Number является наследником (супертип от Number).Integer -> Number -> Object<br>extends B — символ подстановки с указанием верхней границы<br>super B — символ подстановки с указанием нижней границы<br>где B — представляет собой границу<br>Запись вида T2 <= T1 означает, что набор типов описываемых T2 является подмножеством набора типов описываемых T1<br>т.е.Number <=? extends Object<br>? extends Number <=? extends Object<br>и ? super Object <=? super Number"
+}
+,{
+  question: "Почему в примере ниже compile-time error? Какое значение можно добавить в список nums?",
+  answer: "List<Integer> ints = new ArrayList<Integer>();<br>ints.add(1);<br>ints.add(2);<br>List<? extends Number> nums = ints;<br>nums.add(3.14); // compile-time errorЕсли контейнер объявлен с wildcard ? extends, то можно только читать значения. В список нельзя ничего добавить, кроме null. Для того чтобы добавить объект в список нам нужен другой тип wildcard — ? super"
+}
+,{
+  question: "Почему нельзя получить элемент из списка ниже?",
+  answer: "public static <T> T getFirst(List<? super T> list) {<br>return list.get(0); // compile-time error<br>}Нельзя прочитать элемент из контейнера с wildcard ? super, кроме объекта класса Objectpublic static <T> Object getFirst(List<? super T> list) { return list.get(0);<br>}"
+}
+,{
+  question: "The Get and Put Principle или PECS (Producer Extends Consumer Super)",
+  answer: "Особенность wildcard с верхней и нижней границей дает дополнительные фичи, связанные с безопасным использованием типов. Из одного типа переменных можно только читать, в другой — только вписывать (исключением является возможность записать null для extends и прочитать Object для super). Чтобы было легче запомнить, когда какой wildcard использовать, существует принцип PECS — Producer Extends Consumer Super.Если мы объявили wildcard с extends, то это producer. Он только «продюсирует», предоставляет элемент из контейнера, а сам ничего не принимает.Если же мы объявили wildcard с super — то это consumer. Он только принимает, а предоставить ничего не может.Рассмотрим использование Wildcard и принципа PECS на примере метода copy в классе java.util.Collections.public static <T> void copy(List<? super T> dest, List<? extends T> src) { ... }Метод осуществляет копирование элементов из исходного списка src в список dest. src — объявлен с wildcard ? extends и является продюсером, а dest — объявлен с wildcard ? super и является потребителем. Учитывая ковариантность и контравариантность wildcard, можно скопировать элементы из списка ints в список nums:List<Number> nums = Arrays.<Number>asList(4.1F, 0.2F); List<Integer> ints = Arrays.asList(1,2); Collections.copy(nums, ints);Если же мы по ошибке перепутаем параметры метода copy и попытаемся выполнить копирование из списка nums в список ints, то компилятор не позволит нам это сделать:<br>Collections.copy(ints, nums); // Compile-time error"
+}
+,{
+  question: "Что такое Wildcard Capture",
+  answer: "Попробуем теперь реализовать метод, выполняющий перестановку элементов списка в обратном порядке.public static void reverse(List<?> list); <br>// Ошибка!<br> public static void reverse(List<?> list) {<br>List<Object> tmp = new ArrayList<Object>(list);<br>for (int i = 0; i < list.size(); i++) {<br>list.set(i, tmp.get(list.size()-i-1)); // compile-time error<br>}<br>}<br>Ошибка компиляции возникла, потому что в методе reverse в качестве аргумента принимается список с неограниченным символом подстановки <?> .<?> означает то же что и <? extends Object>. Следовательно, согласно принципу PECS, list - это producer. А producer только продюсирует элементы. А мы в цикле for вызываем метод set(), т.е. пытаемся записать в list. И поэтому упираемся в защиту Java, что не позволяет установить какое-то значение по индексу.Что делать? Нам поможет паттерн Wildcard Capture. Здесь мы создаем обобщенный метод rev. Он объявлен с переменной типа T. Этот метод принимает список типов T, и мы можем сделать сет.public static void reverse(List<?> list) { rev(list); }private static <T> void rev(List<T> list) {<br>List<T> tmp = new ArrayList<T>(list);<br>for (int i = 0; i < list.size(); i++) {<br>list.set(i, tmp.get(list.size()-i-1));<br>}<br>}Теперь у нас все скомпилируется. Здесь произошел захват символа подстановки (wildcard capture). При вызове метода reverse(List<?> list) в качестве аргумента передается список каких-то объектов (например, строк или целых чисел). Если мы можем захватить тип этих объектов и присвоить его переменной типа X, то можем заключить, что T является X"
+}
+,{
+  question: "<?> и Raw типы",
+  answer: "Ниже приведен wildcard с неограниченным символом подстановки. Мы просто ставим <?>, без ключевых слов super или extends:static void printCollection(Collection<?> c) {<br>// a wildcard collection<br>for (Object o : c) {<br>System.out.println(o);<br>}<br>}На самом деле такой «неограниченный» wildcard все-таки ограничен, сверху. Collection<?> — это тоже символ подстановки, как и '? extends Object'. Запись вида Collection<?> равносильна Collection<? extends Object> , а значит — коллекция может содержать объекты любого класса, так как все классы в Java наследуются от Object - поэтому подстановка называется неограниченной.<br>Если мы опустим указание типа, например, как здесь:ArrayList arrayList = new ArrayList();то, говорят, что ArrayList — это Raw тип параметризованного ArrayList<T>. Используя Raw типы, мы возвращаемся в эру до дженериков и сознательно отказываемся от всех фич, присущих параметризованным типам.<br>Если мы попытаемся вызвать параметризованный метода у Raw типа, то компилятор выдаст нам предупреждение «Unchecked call». Если мы попытаемся выполнить присваивание ссылки на параметризованный тип Raw типу, то компилятор выдаст предупреждение «Unchecked assignment». Игнорирование этих предупреждений, как мы увидим позже, может привести к ошибкам во время выполнения нашего приложения.ArrayList<String> strings = new ArrayList<>();<br>ArrayList arrayList = new ArrayList();<br>arrayList = strings; // Ok<br>strings = arrayList; // Unchecked assignment arrayList.add(1); //unchecked call"
+}
+,{
+  question: "Практики использования Wildcard",
+  answer: "Если необходимо читать из контейнера, то используйте wildcard с верхней границей '? extends'. Если необходимо писать в контейнер, то используйте wildcard с нижней границей '? super'. Не используйте wildcard, если нужно производить и запись, и чтение.<br>Не используйте Raw типы! Если аргумент типа не определен, то используйте wildcard <?>."
+}
+,{
+  question: "Что такое переменные типа",
+  answer: "Когда мы записываем при объявлении класса или метода идентификатор в угловых скобках, например <T> или <E>, то создаем переменную типа. Переменная типа — это неквалифицированный идентификатор, который можно использовать в качестве типа в теле класса или метода. Переменная типа может быть ограничена сверху.public static <T extends Comparable<T>> T max(Collection<T> coll) {<br>T candidate = coll.iterator().next();<br>for (T elt : coll) {<br>if (candidate.compareTo(elt) < 0) candidate = elt;<br>}<br>return candidate;<br>}В этом примере выражение T extends Comparable<T> определяет T (переменную типа), ограниченную сверху типом Comparable<T>. В отличие от wildcard, переменные типа могут быть ограничены только сверху (только extends). Нельзя записать super. Кроме того, в этом примере T зависит от самого себя, это называется recursive bound — рекурсивная граница.<br>Вот еще пример из класса Enum:<br>public abstract class Enum<E extends Enum<E>>implements Comparable<E>, SerializableЗдесь класс Enum параметризован типом E, который является подтипом от Enum<E>."
+}
+,{
+  question: "Multiple bounds (множественные ограничения)",
+  answer: "Multiple Bounds - множественные ограничения. Записывается через символ '&', то есть мы говорим, что тип, представленный переменной типа T, должен быть ограничен сверху классом Object и интерфейсом Comparable.<T extends Object & Comparable<? super T>> T max(Collection<? extends T> coll)Запись Object & Comparable<? super T&gt образует тип пересечения Multiple Bounds. Первое ограничение — в данном случае Object — используется для erasure, процесса затирания типов. Его выполняет компилятор на этапе компиляции.Переменная типа может быть ограничена только сверху одним или несколькими типами. В случае множественного ограничения левая граница (первое ограничение) используется в процессе затирания (Type Erasure)."
+}
+,{
+  question: "Что такое Type Erasure",
+  answer: "Type Erasure представляет собой отображение типов (возможно, включая параметризованные типы и переменные типа) на типы, которые никогда не являются параметризованными типами или переменными типами. Мы записываем затирание типа T как |T|.<br>Отображение затирания определяется следующим образом:Затиранием параметризованного типа G<T1,...,Tn> является |G|Затиранием вложенного типа T.C является |T|.CЗатиранием типа массива T[] является |T|[]Затиранием переменной типа является затирание ее левой границыЗатиранием любого иного типа является сам этот типВ процессе выполнения Type Erasure (затирания типов) компилятор производит следующие действия:добавляет приведение типов для обеспечения type safety, если это необходимогенерирует Bridge методы для сохранения полиморфизмаT (Тип) -> |T| (Затирание типа)<br>List< Integer>, List< String>, List< List< String>> -> List List< Integer>[] -> List[]<br>List -> List<br>int -> int<br>Integer -> Integer<br><T extends Comparable<T>> -> Comparable<br><T extends Object & Comparable<? super T>> -> Object<br>LinkedCollection<E>.Node -> LinkedCollection.NodeЭта таблица показывает, во что превращаются разные типы в процессе затирания, Type Erasure."
+}
+,{
+  question: "Reifiable типы",
+  answer: "В Java мы говорим, что тип является reifiable, если информация о нем полностью доступна во время выполнения программы. В reifiable типы входят:Примитивные типы (int, long, boolean)<br>Непараметризованные (необобщенные) типы (String, Integer)<br>Параметризованные типы, параметры которых представлены в виде unbounded wildcard (неограниченных символов подстановки) (List<?>, Collection<?>)<br>Raw (несформированные) типы (List, ArrayList)<br>Массивы, компоненты которых — Reifiable типы (int[], Number[], List<?>[], List[)Почему информация об одних типах доступна, а о других нет? Дело в том, что из-за процесса затирания типов компилятором информация о некоторых типах может быть потеряна. Если она потерялась, то такой тип будет уже не reifiable. То есть она во время выполнения недоступна. Если доступна - соответственно, reifiable.<br>Решение не делать все обобщенные типы доступными во время выполнения — это одно из наиболее важных и противоречивых проектных решений в системе типов Java. Так сделали, в первую очередь, для совместимости с существующим кодом. За миграционную совместимость пришлось платить — полная доступность системы обобщенных типов во время выполнения невозможна.Какие типы не являются reifiable:Переменная типа (T)Параметризованный тип с указанным типом параметра (List<Number> ArrayList<String>, List<List<String>>)Параметризованный тип с указанной верхней или нижней границей (List<? extends Number>, Comparable<? super String>). Но здесь стоит оговориться: List<? extends Object> — не reifiable, а List<?> — reifiable"
+}
+,{
+  question: "Почему в примере ниже нельзя создать параметризованный Exception?",
+  answer: "class MyException<T> extends Exception { T t; }Каждое catch выражение в try-catch проверяет тип полученного исключения во время выполнения программы (что равносильно instanceof), соответственно, тип должен быть Reifiable. Поэтому Throwable и его подтипы не могут быть параметризованы.class MyException<T> extends Exception {<br>// Generic class may not extend 'java.lang.Throwable'<br>T t;<br>}"
+}
+,{
+  question: "Что такое Unchecked Warnings",
+  answer: "Компиляция нашего приложения может выдать так называемый Unchecked Warning — предупреждение о том, что компилятор не смог корректно определить уровень безопасности использования наших типов. Это не ошибка, а предупреждение, так что его можно пропустить. Но желательно все-так исправить, чтобы избежать проблем в будущем."
+}
+,{
+  question: "Что такое Heap Pollution",
+  answer: "Присваивание ссылки на Raw тип переменной параметризованного типа, приводит к предупреждению «Unchecked assignment». Если мы проигнорируем его, то возможна ситуация под названием 'Heap Pollution' (загрязнение кучи). Вот пример:static List<String> t() {<br>List l = new ArrayList<Number>();<br>l.add(1);<br>List<String> ls = l; // (1)<br>ls.add('');<br>return ls;<br>}<br>В строке (1) компилятор предупреждает об «Unchecked assignment».<br>Нужно привести и другой пример «загрязнения кучи» — когда у нас используются параметризованные объекты. Кусок кода ниже наглядно показывает, что недопустимо использовать параметризованные типы в качестве аргументов метода с использованием Varargs. В данном случае параметр метода m - это List<String>..., т.е. фактически, массив элементов типа List<String>. Учитывая правило отображения типов при затирании, тип stringLists превращается в массив raw списков (List[]), т.е. можно выполнить присваивание Object[] array = stringLists; и после записать в array объект, отличный от списка строк (1), что вызовет ClassCastException в строке (2).static void m(List<String>... stringLists) {<br>Object[] array = stringLists;<br>List<Integer> tmpList = Arrays.asList(42);<br>array[0] = tmpList; // (1)<br>String s = stringLists[0].get(0); // (2)<br>}Рассмотрим еще один пример:<br>ArrayList<String> strings = new ArrayList<>();<br>ArrayList arrayList = new ArrayList();<br>arrayList = strings; // (1) Ok<br>arrayList.add(1); // (2) unchecked callJava разрешает выполнить присваивание в строке (1). Это необходимо для обеспечения обратной совместимости. Но если мы попытаемся выполнить метод add в строке (2), то получим предупреждение Unchecked call — компилятор предупреждает нас о возможной ошибке. В самом деле, мы же пытаемся в список строк добавить целое число."
+}
+,{
+  question: "Как связаны Reflection и Generic",
+  answer: "Хотя при компиляции параметризованные типы подвергаются процедуре стирания (type erasure), кое-какую информацию мы можем получить с помощью Reflection.Все reifiable доступны через механизм ReflectionИнформация о типе полей класса, параметров методов и возвращаемых ими значений доступна через Reflection.Если мы хотим через Reflection получить информацию о типе объекта и этот тип не Reifiable, то у нас ничего не получится. Но, если, например, этот объект нам вернул какой-то метод, то мы можем получить тип возвращаемого этим методом значения:java.lang.reflect.Method.getGenericReturnType()С появлением Generics класс java.lang.Class стал параметризованным. Рассмотрим вот этот код:List<Integer> ints = new ArrayList<Integer>();<br>Class<? extends List> k = ints.getClass();<br>assert k == ArrayList.class;Переменная ints имеет тип List<Integer> и она содержит ссылку на объект типа ArrayList< Integer>. Тогда ints.getClass() вернёт объект типа Class<ArrayLis>, так как List<Integer> затирается в List. Объект типа Class<ArrayList> можно присвоить переменной k типа Class<? extends List>, согласно ковариантности символов подстановки? extends. А ArrayList.class возвращает объект типа Class<ArrayList>."
+}
+,{
+  question: "Типы в Generics",
+  answer: "Если информация о типе доступна во время выполнения программы, то такой тип называется Reifiable. К Reifiable типам относятся: примитивные типы, непараметризованные типы, параметризованные типы с неограниченным символом подстановки, Raw типы и массивы, элементы которых являются reifiable.Игнорирование Unchecked Warnings может привести к «загрязнению кучи» и ошибкам во время выполнения программы.Reflection не позволяет получить информацию о типе объекта, если он не Reifiable. Но Reflection позволяет получить информацию о типе возвращаемого методом значения, о типе аргументов метода и о типе полей класса."
+}
+,{
+  question: "Что такое подстановочные знаки «Неограниченный» и «Неограниченный» в Generics?",
+  answer: "Ограниченные подстановочные знаки — это те, которые накладывают ограничения на тип. Есть два вида подстановочных знаков <? расширяет T>, что накладывает верхнюю границу, гарантируя, что тип должен быть подклассом T и <? super T> где его наложение нижней границы, гарантируя, что Type должен быть суперклассом T. Этот универсальный тип должен быть создан с помощью Type внутри bound, иначе это приведет к ошибке компиляции. С другой стороны, <?> Представляют и неограниченный тип, потому что <?> Можно заменить любым типом."
+}
+,{
+  question: "В чем разница между списком <? расширяет T> и List <? супер T> ?",
+  answer: "Обе декларации List являются примером ограниченных символов подстановки, List <? extends T> будет принимать любой список с типом extending T, а List <? super T> примет любой Список с типом super class из T. Например, List <? extends Number> может принимать список <Integer> или список <Float>."
+}
+,{
+  question: "Как написать универсальный метод, который принимает универсальный аргумент и возвращает универсальный тип?",
+  answer: "необработанного типа вам нужно использовать универсальный тип, такой как T, E или K, V, которые являются хорошо известными заполнителями для Type, Element и Key, Value. Посмотрите на Java Collection Framework для примеров обобщенных методов. В простейшей форме универсальный метод будет выглядеть так:<br>public V put(K key, V value) {<br>return cache.put(key, value);<br>}"
+}
+,{
+  question: "Можете ли вы передать List <String> методу, который принимает List <Object>",
+  answer: "Этот общий вопрос об интервью на Java может показаться странным для любого, кто не очень знаком с Generics, так как на первый взгляд кажется, что String является объектом, поэтому List <String> можно использовать там, где требуется List <Object>, но это не так. Это приведет к ошибке компиляции. Это имеет смысл, если вы идете на один шаг дальше, потому что List <Object> может хранить любую вещь, включая String, Integer и т. Д., Но List <String> может хранить только String.<br>List<Object> objectList;<br>List<String> stringList;<br>objectList = stringList;"
+}
+,{
+  question: "Можем ли мы использовать Generics с Array?",
+  answer: "Вероятно, это был самый простой вопрос об обобщении в Java, если вы знаете тот факт, что Array не поддерживает Generics, и именно поэтому Джошуа Блоч предложил предпочесть List над Array, потому что List может обеспечить безопасность типов времени компиляции над Array."
+}
+,{
+  question: "Как вы можете подавить непроверенное предупреждение в Java?",
+  answer: "Компилятор javac для Java 5 генерирует непроверенные предупреждения, если вы используете объединение необработанных типов и обобщенных типов, например<br>List<String> rawList = new ArrayList()<br>Note: Hello.java uses unchecked or unsafe operations.;<br>который может быть подавлен с помощью аннотации @SuppressWarnings («unchecked»).<br>Это были некоторые из часто задаваемых вопросов об интервью дженериков и ответов на Java . Ни один из этих общих вопросов интервью не является жестким или сложным, на самом деле они основаны на фундаментальных знаниях дженериков. Любой Java-программист, который имеет приличное знание Generics, должен быть знаком с этими универсальными вопросами в Java. Если у вас есть какой-либо другой хороший общий вопрос, который был задан в каком-либо интервью, или вы ищете ответ на любой вопрос об интервью Generics на Java, пожалуйста, оставьте сообщение в разделе комментариев."
+}
+,{
+  question: "Что такое дженерики в Java? Каковы преимущества использования Generics?",
+  answer: "Те, кто пришел до Java 5, знают, как неудобно было сохранять объект в Collection и затем приводить его обратно к правильному типу Type перед его использованием. Дженерики мешают от тех. он обеспечивает безопасность типов времени компиляции и гарантирует, что вы вставляете только правильный тип в коллекцию, и исключает ClassCastException во время выполнения."
+}
+,{
+  question: "В чем отличие ArrayList и ArrayList<?>",
+  answer: "Запись вида ArrayList называется raw type (обычный тип). Она эквивалентна записи вида ArrayList<T> и используется для обратной совместимости, т.к. до Java 1.5 не было дженерик коллекций. По возможности такой формы записи следует избегать.<br>ArrayList<?> является супертипом для ArrayList."
+}
+,{
+  question: "Что такое Type Inference",
+  answer: "Термин можно перевести как «Вывод типа». Это возможность компилятора определять (выводить) тип из контекста. Вот пример кода:List<Integer> list = new ArrayList<Integer>();С появлением даймонд-оператора в Java 7 мы можем не указывать тип у ArrayList:List<Integer> list = new ArrayList<>();Компилятор выведет тип ArrayList из контекста - List<Integer>. Этот процесс и называется type inference.В Java 8 сильно усовершенствовали механизм выведения типа благодаря JEP 101.В общем случае процесс получения информации о неизвестных типах именуется выводом типа Type Inference. На верхнем уровне вывод типа можно разделить на три процесса:<br>Приведение (reduction)<br>Объединение (incorporation)<br>Разрешение (resolution)<br>Эти процессы тесно взаимодействуют: приведение может запустить объединение, объединение может привести к дальнейшему приведению, а разрешение — к дальнейшему объединению.Детальное описание механизма выведения типа доступно в спецификации языка, где ему посвящена целая глава."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

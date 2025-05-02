@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "1)Что такое Project Reactor?",
+  answer: "Project Reactor — это библиотека Java 8, которая реализует модель реактивного программирования. Он построен на основе спецификации реактивных потоков, стандарта для создания реактивных приложений.<br>Reactor — это полностью неблокирующая основа реактивного программирования для JVM с эффективным управлением требованиями (в форме управления «противодавлением»). Он напрямую интегрируется с функциональными API-интерфейсами Java 8, в частности, Completable Future , Stream и Duration. Он предлагает составные API-интерфейсы асинхронной последовательности — Flux (для элементов[N]) и Mono (для элементов[1]) — и широко реализует спецификацию Reactive Streams."
+}
+,{
+  question: "2)Что такое реактивные типы и зачем их использовать ?",
+  answer: "Реактивные типы не предназначены для обработки запросов или данных быстрее.<br>Их сила заключается в их способности одновременно обслуживать больше запросов и более эффективно обрабатывать операции с задержкой, такие как запрос данных с удаленного сервера.<br>Они позволяют обеспечить лучшее качество обслуживания и предсказуемое планирование пропускной способности, изначально имея дело со временем и задержкой, не затрачивая больше ресурсов.<br>В отличие от традиционной обработки, которая блокирует текущий поток во время ожидания результата, Reactive API запрашивает только тот объем данных, который он способен обработать и предоставляет новые возможности, поскольку он имеет дело с потоком данных, а не с отдельными элементами (объектами)."
+}
+,{
+  question: "3)Зачем мне вообще использовать RxJava или Reactor, если то же самое можно сделать с Streams, CompletableFutures и Optionals?",
+  answer: "Проблема, по сути, заключается в том, что большую часть времени вы имеете дело с простыми задачами и вам действительно не нужны эти библиотеки. Но когда все усложняется, вы должны писать некрасивый кусок кода. Затем этот кусок кода становится все более сложным и сложным в поддержке.<br>RxJava и Reactor имеют множество удобных функций, которые будут удовлетворять ваши потребности на долгие годы."
+}
+,{
+  question: "4)Основные классы для работы в реактивном режиме?",
+  answer: "- Mono<br>  Класс Mono нужен для работы с единственным объектом.Mono также может использоваться как какая-то асинхронная задача в стиле 'выполнил и забыл', без возвращаемого результата (очень похож на Runnable).<br>- Flux<br>  Данный класс схож с Mono, но предоставляет возможность асинхронной работы со множеством объектов.Flux — это Publisher, способный выпустить от 0 до N событий (элементов), в том числе и бесконечное их число.<br>Flux и Mono реализуют Publisher интерфейс из спецификации Reactive Streams.<br>Разделение на Flux и Mono помогает улучшить семантику реактивного API, делая его достаточно выразительным.<br>Flux и Mono — lazy.Для того чтобы запустить какую-то обработку и воспользоваться данными, лежащими в Mono и Flux, нужно на них подписаться с помощью subscribe().Методы subscribe() используют 'лямбда-выражения' из Java 8 в качестве параметров."
+}
+,{
+  question: "5)Основные операторы?",
+  answer: "КАТЕГОРИЯ ОПЕРАТОРА -> ПРИМЕРЫ<br>Создание новой последовательности -> just, fromArray, fromIterable, fromStream<br>Преобразование существующей последовательности -> map, flatMap, startWith, concatWith<br>Заглядывать в последовательность -> doOnNext, doOnComplete, doOnError, doOnCancel<br>Фильтрация последовательности -> filter, ignoreElements, distinct, elementAt, takeLast<br>Обработка ошибок -> onErrorReturn, onErrorResume, retry<br>Работаем со временем -> elapsed, interval, timestamp, timeout<br>Расщепление потока -> buffer, groupBy, window<br>Возвращаясь к синхронному миру -> block, blockFirst, blockLast, toIterable, toStream<br>Многоадресная рассылка потока нескольким подписчикам -> publish, cache, replay"
+}
+,{
+  question: "6)Как работает subscribe()?",
+  answer: "1) Вызывается метод subscribe()<br>2) Затем создается Subscription объект<br>3) После этого Subscriber вызовет request() метод в Subscription классе, чтобы указать количество объектов, которые он может обработать (если этот метод не вызывается явно, запрашивается неограниченное количество объектов).<br>4) Subscriber может получать объекты с помощью метода onNext().Если подписчик получает все запрошенные им объекты, он может запросить дополнительные объекты или отменить подписку, вызвав onComplete(). Если в какой-то момент возникает ошибка, издатель вызывает метод onError() на подписчике.<br>Flux.just(1, 2, 3, 4).subscribe(System.out::println);<br>Данные не начнут поступать, пока мы не подпишемся — метод subscribe().<br>Когда мы вызываем подписку, под капотом вызывается Subscription, который запрашивает элементы из потока (это означает, что он запрашивает каждый доступный элемент).<br>Этот поток описывается в интерфейсе Subscriber как часть спецификации реактивных потоков, и фактически это то, что было реализовано за кулисами в нашем вызове метода onSubscribe()."
+}
+,{
+  question: "7)Как выполнять операторы в новом потоке?",
+  answer: "Reactor не применяет модель параллелизма. Вместо этого выполнение большинства операторов будет продолжено в том же потоке, оставляя выбор за разработчиком. Модель выполнения определяется тем Scheduler, что используется.<br>Есть два способа переключения контекста выполнения в реактивной цепочке: publishOn и subscribeOn. Отличается следующее:<br>publishOn(Scheduler scheduler) влияет на выполнение всех последующих операторов (если не указано иное)<br>subscribeOn(Scheduler scheduler) изменяет поток, из которого подписывается вся цепочка операторов, на основе самого раннего вызова subscribeOn в цепочке. Это не влияет на поведение последующих вызовов publishOn<br>Класс Schedulers содержит статические методы, чтобы обеспечить контекст выполнения, например:<br>parallel() - Фиксированный пул воркеров, настроенный для параллельной работы, создавая столько воркеров, сколько ядер ЦП.<br>single() - Одиночная многоразовая нить. Этот метод повторно использует один и тот же поток для всех вызывающих, пока Планировщик не будет удален. Если вместо этого вам нужен выделенный поток для каждого вызова, вы можете использовать Schedulers.newSingle () для каждого вызова.<br>boundedElastic() - Динамически создает ограниченное количество рабочих. Он имеет ограничение на количество поддерживающих потоков, которые он может создать, и может ставить задачи в очередь для перепланирования, когда поток становится доступным. Это хороший выбор для обертывания синхронных, блокирующих вызовов.<br>immediate() - немедленно запускается в исполняемом потоке, не переключая контекст выполнения<br>fromExecutorService(ExecutorService) - может использоваться для создания Планировщика из любого существующего ExecutorService"
+}
+,{
+  question: "8)Чем отличается map от flatMap?",
+  answer: "map — преобразует элементы, испускаемые этим потоком, применяя синхронную функцию к каждому элементу.<br>Flux.just(1, 2, 3).map(s -> s + 1)<br>.subscribe(System.out::println);<br>Output:234<br>Такие операции, как map или flatMap, не работают с результатом Mono, они создают новый Mono, который добавляет другое преобразование к выполнению исходного Mono.<br>flatMap — асинхронно преобразует элементы, испускаемые этим потоком, в Publisher-ы, а затем объединяет эти внутренние Publisher-ы в единый поток посредством слияния<br>flatMap не гарантирует порядок элементов!"
+}
+,{
+  question: "9)Разница между flatMap(), concatMap() и switchMap()?",
+  answer: "flatMap: не сохраняет порядок элементов, работает асинхронно<br>switchMap — он похож на flatMap, за исключением того, что он сохраняет результат только последней подписки, отбрасывая предыдущие.<br>Пример: обработка новых данных (например, список сообщений в ленте). Предположим, что где-то в приложении есть Observable, который периодически генерирует список объектов. Это может быть список сообщений на временной шкале, который обновляется каждый раз, когда пользователь взаимодействует с ним. В этом случае лучшим оператором для использования будет switchMap, потому что нас не волнует предыдущий результат, если у нас есть новый набор элементов. От него можно отказаться и подписаться на новейшие данные. Это может сэкономить нам время, если пропустить обработку предыдущего (старого) ответа.<br>concatMap — работает почти так же, как flatMap, но сохраняет порядок элементов.<br>Например: сделать что-то для каждого элемента в отсортированном списке: FlatMap или switchMap не должны использоваться в этом случае. Из-за синхронных вызовов в concatMap необходимо учитывать увеличение времени обработки (что не всегда благоприятно)."
+}
+,{
+  question: "10)Холодные и горячие Publisher",
+  answer: "Доступны два типа Publisher - cold и hot (холодные и горячие). Пока что мы сосредоточились на холодных Publisher. Как мы заявляли ранее, ничего не происходит, пока мы не подпишемся - но на самом деле это верно только для холодных издателей.<br>Холодный Publisher генерирует новые данные для каждой подписки. Если подписки нет, данные никогда не генерируются. Напротив, hot издатель не зависит от подписчиков. Он может начать публикацию данных без подписчиков. Если подписчик подписывается после того, как издатель начал передавать значения, он получит только значения, выпущенные после его подписки.<br>Publisher в Reactor по умолчанию не работают. Один из способов создания горячего Publisher - это вызвать publish() метод в Flux. Это вернет ConnectableFlux<T>, у которого есть метод connect() для запуска передачи значений. Подписчики должны затем подписаться на этот ConnectableFlux вместо исходного Flux."
+}
+,{
+  question: "11)Что такое Reactor IPC ?",
+  answer: "Reactor IPC — это расширение Reactor, которое позволяет интегрироваться с различными платформами и системами, поддерживающими неблокирующий ввод / вывод (например, Netty, Kafka).<br>Когда запрос поступает в Netty, он немедленно обрабатывается с использованием класса ChannelOperations . Далее вызывается цепочка вызовов и, наконец, запрос достигает DispatcherHandler (он направляет входящие запросы другим контроллерам).<br>Затем запрос достигает контроллера.<br>Дело в том, что по умолчанию все Mono и Flux холодные (ниже мы рассмотрим более подробно, что это означает).<br>Затем на основе Publisher начал выстраиваться поток, достигший класса ChannelOperations, и только здесь, в ChannelOperations, был вызван метод subscribe(), и только в этот момент этот поток начал работать (начали происходить HTTP-вызовы)."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

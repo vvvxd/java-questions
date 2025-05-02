@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое Helm?",
+  answer: "Helm — один из самых популярных пакетных менеджеров для Kubernetes.<br>Современное приложение — сложный продукт с множеством внутренних компонентов и внешних связей. При этом чаще всего у нас есть несколько рабочих окружений, которые могут достаточно сильно отличаться друг от друга и по количеству компонентов и связей, и по их качеству. Кроме того, в современном мире микросервисов и распиленных монолитов у нас может быть гораздо больше одного проекта. Управлять этим сложным хозяйством хочется максимально простым, универсальным и наименее затратным способом. Поэтому отношение к выбору подходящего инструмента для деплоя и построение технической дисциплины на его основе варируется от хорошей практики до необходимого условия выживания. Таким тулингом для многих стал Helm Package Manager."
+}
+,{
+  question: "Расскажите про архитектуру Helm?",
+  answer: "Работает же Helm следующим образом:Получает на вход Chart (локально или из репозитория, при этом чарты могут использовать друг друга) и генерирует манифест релиза.Получает текст предыдущего релиза.Получает текущее стостояние примитивов из namespace-релиза.Сравнивает эти три вещи, делает patch и передает его в KubeAPI.Дожидается выката релиза (опциональный шаг).Эта схема называется 3-way merge. Таким образом Helm приведет конфигурацию приложения к состоянию, которое описано в git, но не тронет другие изменения. Т. е., если у вас в кластере есть какая-то сущность, которая трансформирует ваши примитивы (например, Service Mesh), то Helm отнесется к ним бережно."
+}
+,{
+  question: "Что такое Helm chart?",
+  answer: "Фактически, папка определенной структуры с текстовыми файлами внутри. По команде helm create [chartname] будет создана заготовка, которую вы сможете развить нужным вам образом.Файлы имеют разную структуру и назначение. Например, в Chart.yaml описаны основные параметры чарта. В нем много произвольных описательных полей, однако необходимое и достаточное условие — указать только name и version."
+}
+,{
+  question: "Что такое Репозиторий чартов?",
+  answer: "Достаточно простая сущность, фактически веб-сервер, в корне которого лежит index.yaml с описанием чартов и сами запакованные .tgz-чарты.<br>В принципе, управлять репозиторием можно вручную, используя команды Helm. Хотя существует и ПО, обеспечиващее быстрый старт и визуальные интерфейсы для облегчения работы. Например:<br>Chart museum;<br>Jfrog Artifactory;<br>Harbour."
+}
+,{
+  question: "Что такое Helm Release, Helm Values?",
+  answer: "Helm Release генерируется из чарта (Chart) с использованием входных значений (Values):<br>Chart + Values = Release<br>При помощи команды helm list мы можем просмотреть релизы, установленные в конкретном Kubernetes Namespace.<br>С релизами связано понятие Release backend — места, в котором Helm хранит и версионирует переданные на деплой релизы.<br>Это может быть configmap/secret/SQL. По умолчанию это secret — Helm создает объект этого типа (в котором хранится JSON, завернутый в gzip + Base64) на каждый релиз в Namespace, куда его и устанавливает. Хотя он может сделать это и, например, в SQL-базе."
+}
+,{
+  question: "Типовые задачи «YAML-девелопера»?",
+  answer: "Перейдем к задачам, которые наиболее часто возникают в процессе деплоя приложений в Kubernetes, и их реализции с помощью Helm. У меня получился вот такой короткий список:Кастомизация приложения в разрезе окружений.<br>Переиспользвание кода.<br>Управление блоками кода по условию.<br>Модульная разработка.<br>Трекинг выката.<br>Установка очередности запуска подов.<br>Отладка.<br>Релизный цикл.<br>Расширение функциональности Helm."
+}
+,{
+  question: "Кастомизация приложения в разрезе окружений с помощью Helm?",
+  answer: "У нас может быть достаточно много окружений, похожих в целом, но, в то же время, имеющих несколько важных отличий.<br>Среди последних можно выделить два типа:Отличия, связанные с параметрами работы приложений (например, данные внешних систем, имена баз, очередей и т. п.).Отличия в инфраструктуре (адреса ингрессов, количество реплик, включение или отключение инфраструктурных компонентов).Согласно лучшим практикам, мы должны уметь передавать рабочие параметры в приложение как можно ближе к деплою. Если вы до сих пор устанавливаете их при сборке имиджа или запекаете в образ, не делайте так — этот подход чреват многими проблемами. Хороший способ управления рабочими параметрами — передавать их через переменные окружения или configmap, которые монтируются в под.<br>Управление инфраструктурными изменениями концептуально сходно с управлением рабочими параметрами приложения: в рамках Helm это изменение текстовых файлов в зависимости от набора входных значений.<br>Чтобы управлять входными значениями, в Helm есть механизм Values, расположенный в файле values.yaml, Мы можем использовать values в templates. Values.yaml представляет собой иерархическую древовидную структуру «ключ — значение». С ее помощью мы можем создавать нужную группировку и мнемонику для наших входных величин.<br>Но values.yaml — статический способ задания величин. Очевидно, что нам нужно менять некоторые values при деплое в конкретное окружение."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

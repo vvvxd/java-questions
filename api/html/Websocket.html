@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Что такое WebSocket?",
+  answer: "WebSocket - протокол для общения между клиентом и сервером, предоставляющий двухсторонне общение сверх протокола TCP.<br>Мы подключаем WS один раз, а затем сервер может отдавать нам ответы тогда, когда посчитает нужным:"
+}
+,{
+  question: "Как WebSocket работает?",
+  answer: "Первое что мы делаем — отправляем обычный TCP-запрос на сервер, мы говорим, что хотим подключиться к серверу и ждём от него ответа. Такой процесс называется 'рукопожатие' (Handshake), он используется повсеместно, например когда вы подключаетесь к роутеру ваш телефон отправляем запрос роутеру с ключами, роутер отвечает ОК и вы успешно подключаетесь.<br>Затем происходит обмен данными: допустим один из множества клиентов отправил HTTP-запрос серверу и нужно отдать ответ не только одному клиенту, а целой сети! Сервер в таком случае отдаст обычный ответ отправителю запроса, а всем другим пришлёт пакеты по WebSocket-соединению с полезными данными.<br>Разберем более подробно на примере. Вы — клиент, отправляете запрос серверу на подключение. Запрос и ответ будут выглядеть примерно так👁:<br>// Отправляем запрос серверу по ссылке example.com/connect-to-ws<br>// Вот что примерно мы пришлём:GET /connect-to-ws HTTP/1.1 Host: example.com:8000 Upgrade: websocket Connection: Upgrade Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ== Sec-WebSocket-Version: 13// А вот что нам на такой запрос ответит сервер при успешном рукопожатии: HTTP/1.1 101 Switching Protocols Upgrade: websocket Connection: Upgrade Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=Как мы видим сервер ответил не кодом 200 (успешное завершение запроса), а 101 — переключение протоколов. Это происходит потому, что мы отправили HTTP запрос, а хотим получить не только HTTP-ответ, а ещё и другие ответы по WS, сервер как бы предупреждает клиент, что будет присылать ответы множество раз"
+}
+,{
+  question: "А как сервер узнает, что мы до сих пор подключены?",
+  answer: "Ответ на данный вопрос достаточно легкий — сервер и клиент играют в пинг-понг😁😳<br>Сервер периодически присылает ответ по WS с просьбой о действии - послать запрос на сервер. Если клиент отвечает до истечения тайм-аута — он подключен, если нет, то происходит разрыв соединения до следующего рукопожатия👋<br>Полезно знать, что все ответы от сервера по WS игнорируются клиентом и сервером, до того как случится рукопожатие"
+}
+,{
+  question: "Почему соединение называется двухсторонним (дуплексным), а ответы мы получаем только от сервера?",
+  answer: "На самом деле мы не только получаем ответы от сервера, а ещё и можем в двухстороннем порядке отправлять через WS запросы!😳"
+}
+,{
+  question: "Закрытие соединения WebSocket ?",
+  answer: "Для закрытия соединения мы должны отправить запрос серверу, а он по истечению таймаута тоже должен отправить ответ на подтверждение закрытия. В JavaScript это делается одним методом"
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

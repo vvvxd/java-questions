@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Дайте краткую характеристику Enum в Java",
+  answer: "Enum — перечисление, набор строковых констант, объединенных общим типом. Объявляется через ключевое слово — enum. Вот пример с enum — допустимые роли в некоторой школе:public enum Role { STUDENT, TEACHER, DIRECTOR, SECURITY_GUARD }Слова, написанные большими буквами, и есть те самые константы перечисления, которые объявляются упрощенно, без использования оператора new. Использование перечислений заметно упрощает жизнь, так как они помогают избежать ошибок и путаницы в наименованиях (так как может быть только определенный перечень значений)."
+}
+,{
+  question: "Может Enum реализовывать (implements) интерфейсы?",
+  answer: "Да. Ведь перечисления должны представлять не просто пассивные наборы (как например, роли). В Java они могут представлять более сложные объекты с некоторым функционалом, поэтому вам, возможно, понадобится добавить к ним дополнительный функционал. Также это позволит использовать возможности полиморфизма, подставляя значение enum в места, где необходим тип имплементируемого интерфейса."
+}
+,{
+  question: "Может Enum расширять (extends) класс?",
+  answer: "Нет, не может, так как перечисление — это подкласс по умолчанию универсального класса Enum <T>, где T представляет универсальный тип перечисления. Это не что иное, как общий базовый класс для всех типов перечисления языка Java. Преобразование enum в класс выполняется компилятором Java во время компиляции. Это расширение явно в коде не указывается, но всегда незримо присутствует."
+}
+,{
+  question: "Что будет, если мы не будем переопределять метод toString() для Enum?",
+  answer: "Предположим, у нас есть следующий enum:<br>public enum Role { STUDENT, TEACHER, DIRECTOR, SECURITY_GUARD; }<br>Выведем в консоли студента, вызвав у него toString():<br>System.out.println(Role.STUDENT.toString());<br>Результат в консоли:<br>STUDENT<br>То есть по умолчанию toString() для enum-а — название самой константы."
+}
+,{
+  question: "Можно ли указывать конструктор внутри Enum?",
+  answer: "Да, конечно. Именно через конструктор и задаются значения внутренних переменных enum. В качестве примера к предыдущему enum добавим два поля — ageFrom и ageTo — чтобы обозначить возрастные рамки для каждой роли:public enum Role {<br>STUDENT(5,18),<br>TEACHER(20,60),<br>DIRECTOR(40,70),<br>SECURITY_GUARD(18,50);<br>int ageFrom;<br>int ageTo;<br>Role(int ageFrom, int ageTo)<br>{ this.ageFrom = ageFrom;<br>this.ageTo = ageTo; }<br>}"
+}
+,{
+  question: "Что делает метод ordinal() в Enum?",
+  answer: "При вызове метода int ordinal() на элементе enum-а мы получим порядковый номер с нуля этого значения в общем ряде перечислений. Давайте используем данный метод на одном элементе из предыдущего рассмотренного enum-а — Role:<br>System.out.println(Role.DIRECTOR.ordinal());<br>Соответственно, в консоли выведется:<br>2"
+}
+,{
+  question: "Можно ли использовать Enum c TreeSet или TreeMap в Java?",
+  answer: "Использование enum типов в TreeSet и TreeMap допустимо. И мы можем написать:<br>TreeSet<Role> treeSet = new TreeSet<>(); treeSet.add(Role.SECURITY_GUARD); treeSet.add(Role.DIRECTOR); treeSet.add(Role.TEACHER); treeSet.add(Role.STUDENT); treeSet.forEach(System.out::println);<br>И в консоли будет выведено:<br>STUDENT TEACHER DIRECTOR SECURITY_GUARD<br>Мы получили вывод не по алфавиту. Дело в том, что если мы используем элементы enum-а для значений TreeSet или как ключи для TreeMap, элементы сортируются по их естественному порядку (по порядку, в котором они и заданы в enum). Понимание этих особенностей помогает нам писать код качественнее."
+}
+,{
+  question: "Как связаны методы ordinal() и compareTo() в Enum?",
+  answer: "Как было сказано ранее, ordinal() возвращает порядковый номер значения в общем списке перечислений. Также в разборе предыдущего вопроса вы увидели, что элементы перечислений, попав, например, в TreeSet (отсортированное множество) принимают порядок, в котором они объявлены в enum. И как мы знаем, TreeSet и TreeMap сортируют элементы посредством вызова у них метода compareTo() интерфейса Comparable. Из этого можно сделать предположение, что класс Enum имплементирует интерфейс Comparable, реализуя его в метод compareTo(), внутри которого и используется ordinal() для задания порядка сортировки."
+}
+,{
+  question: "Можно ли использовать Enum в switch case?",
+  answer: "Можно и нужно! Оглядываясь на свою практику, отмечу, что одним из наиболее частых мест применения enum являются логические конструкции типа switch. В таком случае вы можете предусмотреть все возможные вариации case, и после прописания логики для всех значений enum-а использование оператора default может даже не понадобиться! Ведь если вы используете String или числовое значение, например, типа int, вам может прийти не предусмотренное значение, что в свою очередь невозможно с использованием enum-а."
+}
+,{
+  question: "Как получить все имеющиеся значения в экземпляре Enum?",
+  answer: "Если нужно получить все экземпляры перечисления, есть метод values(), который возвращает массив всех доступных значений определенного enum-а в естественно порядке (в порядке задания в enum)."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>

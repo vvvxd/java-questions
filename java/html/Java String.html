@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вопросы по собеседованию</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .question-block {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            word-break: break-word;
+        }
+        .question-block:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+<!-- Контейнер с вопросом -->
+<div id="question-container" class="bg-white shadow-lg rounded-lg p-6 w-[800px] h-[750px] flex items-center justify-center text-center relative">
+    <div id="question-block" class="question-block p-4 border-b w-full h-full flex items-center justify-center text-center relative" onclick="toggleAnswer()">
+        <strong class="text-lg block" id="question-text"></strong>
+        <div id="answer-text" class="text-gray-700 hidden" onclick="toggleAnswer()"></div>
+    </div>
+</div>
+
+<!-- Навигация -->
+<div class="absolute bottom-10 flex justify-center gap-4">
+    <button onclick="prevQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Назад</button>
+    <button onclick="location.href='main.html'" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">На главную</button>
+    <button onclick="nextQuestion()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Вперед</button>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[900px] h-[800px] overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Ответ</h2>
+        <p id="modal-answer" class="text-gray-700"></p>
+        <button onclick="closeModal()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentQuestionIndex = 0;
+    const MAX_ANSWER_LENGTH = 2000; // Максимальная длина ответа для отображения без модального окна
+
+    const questions = [
+        {
+  question: "Какие 'строковые' классы вы знаете?",
+  answer: "public final class String implements java.io.Serializable, Comparable<String>, CharSequencepublic final class StringBuffer extends AbstractStringBuilder implements java.io.Serializable, CharSequencepublic final class StringBuilder extends AbstractStringBuilder implements java.io.Serializable, CharSequence"
+}
+,{
+  question: "Какие основные свойства 'строковых' классов (их особенности)?",
+  answer: "Все строковые классы - final (следовательно от них нельзя унаследоваться).String.Строка — объект, что представляет последовательность символов. Для создания и манипулирования строками Java платформа предоставляет общедоступный финальный (не может иметь подклассов) класс java.lang.String. Данный класс является неизменяемым (immutable) — созданный объект класса String не может быть изменен.StringBuffer Строки являются неизменными, поэтому частая их модификация приводит к созданию новых объектов, что в свою очередь расходует драгоценную память. Для решения этой проблемы был создан класс java.lang.StringBuffer, который позволяет более эффективно работать над модификацией строки. Класс является mutable, то есть изменяемым — используйте его, если Вы хотите изменять содержимое строки. StringBuffer может быть использован в многопоточных средах, так как все необходимые методы являются синхронизированными.StringBuilder StringBuilder — класс, что представляет изменяемую последовательность символов. Класс был введен в Java 5 и имеет полностью идентичный API с StringBuffer. Единственное отличие — StringBuilder не синхронизирован. Это означает, что его использование в многопоточных средах нежелательно. Следовательно, если вы работаете с многопоточностью, Вам идеально подходитStringBuffer, иначе используйте StringBuilder, который работает намного быстрее в большинстве реализаций."
+}
+,{
+  question: "Можно ли наследовать строковый тип, почему?",
+  answer: "Классы объявлены final, поэтому наследоваться не получится."
+}
+,{
+  question: "Дайте определение понятию конкатенация строк.",
+  answer: "Конкатенация — операция объединения строк, что возвращает новую строку, что является результатом объединения второй строки с окончанием первой. Операции конкатенации могут быть выполнены так:StringBuffer stringBuffer = new StringBuffer();<br>StringBuilder stringBuilder = new StringBuilder();<br>String str = 'ABC';<br>str += 'DEF';<br>String str2 = 'one'.concat('two').concat('three');<br>stringBuffer.append('DDD').append('EEE');<br>stringBuilder.append('FFF').append('GGG');<br>System.out.println(str + ' ' +str2 + ' ' + stringBuffer.toString() + ' ' + stringBuilder.toString());//ABCDEF onetwothree DDDEEE FFFGGG"
+}
+,{
+  question: "Как преобразовать строку в число?",
+  answer: "У каждой обертки для примитивов есть свой метод valueOf(String s), который возвращает преобразованное численное значение из строки. При этом форматы строки и принимаемого типа должны совпадать. Например:String x = '523.5';<br>Double xd = Double.valueOf(x);<br>/*<br>Integer xy = Integer.valueOf(x); //java.lang.NumberFormatException: For input string: '523.5'<br>*/<br>System.out.println(xd); //523.5"
+}
+,{
+  question: "Как сравнить значение двух строк?",
+  answer: "Оператор == работает с ссылками объекта String. Если две переменные String указывают на один и тот же объект в памяти, сравнение вернет результат true. В противном случае результат будет false, несмотря на то что текст может содержать в точности такие же символы. Оператор == не сравнивает сами данные типа char. Для сравнения посимвольно необходимо использовать метод equals();"
+}
+,{
+  question: "Как перевернуть строку?",
+  answer: "String s = 'ABCDEFG';<br>StringBuilder stringBuilder = new StringBuilder(s);<br>stringBuilder.reverse();<br>System.out.println(stringBuilder.toString()); //GFEDCBA<br>Можно и алгоритмом переставляя каждый char, но это на ваше усмотрение:)."
+}
+,{
+  question: "Как работает сравнение двух строк?",
+  answer: "Строка в Java - это отдельный объект, который может не совпадать с другим объектом, хотя на экране результат выводимой строки может выглядеть одинаково. Просто Java в случае с логическим оператором == (а также !=) сравнивает ссылки на объекты.<br>Метод equals сравнивает посимвольно на эквивалентность."
+}
+,{
+  question: "Как обрезать пробелы в конце строки?",
+  answer: "String s = 'a ';<br>System.out.println(s.trim() + 'b');//ab<br>System.out.println(s + 'b');//a b"
+}
+,{
+  question: "Как заменить символ в строке?",
+  answer: "Можно использовать метод replace(CharSequence target, CharSequence replacement), который меняет символы в строке. Можно преобразовать в массив символов и заменить символ там. Можно использовать StringBuilder и метод setCharAt(int index, char ch)"
+}
+,{
+  question: "Как получить часть строки?",
+  answer: "Метод substring(int beginIndex, int lastIndex) - возвращает часть строки по указанным индексам."
+}
+,{
+  question: "Дайте определение понятию 'пул строк'.",
+  answer: "Пул строк - это набор строк, который хранится в памяти Java heap. Мы знаем, что String это специальный класс в Java, и мы можем создавать объекты этого класса, используя оператор new точно так же, как и создавать объекты, предоставляя значение строки в двойных кавычках.Диаграмма ниже объясняет, как пул строк размещается в памяти Java heap и что происходит, когда мы используем различные способы создания строк.Пул строк возможен исключительно благодаря неизменяемости строк в Java и реализации идеи интернирования строк. Пул строк также является примером паттерна Приспособленец (Flyweight).Пул строк помогает экономить большой объем памяти, но с другой стороны создание строки занимает больше времени.Когда мы используем двойные кавычки для создания строки, сначала ищется строка в пуле с таким же значением, если находится, то просто возвращается ссылка, иначе создается новая строка в пуле, а затем возвращается ссылка.Тем не менее, когда мы используем оператор new, мы принуждаем класс String создать новый объект строки, а затем мы можем использовать метод intern() для того, чтобы поместить строку в пул, или получить из пула ссылку на другой объект String с таким же значением.<br>Ниже приведен пример, показывающий работу пула строк.String s1 = 'Cat';<br>String s2 = 'Cat';<br>String s3 = new String('Cat');<br>System.out.println('s1 == s2 :'+(s1==s2)); //s1 == s2 :true<br>System.out.println('s1 == s3 :'+(s1==s3)); //s1 == s3 :false"
+}
+,{
+  question: "Какой метод позволяет выделить подстроку в строке?",
+  answer: "В дополнении к 'как получить часть строки' можно использовать метод string.indexOf(char c), который вернет индекс первого вхождения символа. Таким образом потом можно использовать этот номер для выделения подстроки с помощью substring();"
+}
+,{
+  question: "Как разбить строку на подстроки по заданному разделителю?",
+  answer: "ы можем использовать метод split(String regex) для разделения строки на массив символов, используя в качестве разделителя регулярное выражение. Метод split(String regex, int numOfStrings) является перегруженным методом для разделения строки на заданное количество строк. Мы можем использовать обратную черту для использования специальных символов регулярных выражений в качестве обычных символов.String line = 'I am a java developer';<br>String[] words = line.split(' ');<br>String[] twoWords = line.split(' ', 2);<br>System.out.println('String split with delimiter: '+Arrays.toString(words));//String split with delimiter: [I, am, a, java, developer]<br>System.out.println('String split into two: '+Arrays.toString(twoWords));//String split into two: [I, am a java developer]<br>//split string delimited with special characters<br>String wordsWithNumbers = 'I|am|a|java|developer';<br>String[] numbers = wordsWithNumbers.split('\\|');<br>System.out.println('String split with special character: '+ Arrays.toString(numbers));"
+}
+,{
+  question: "Какой метод вызывается для преобразования переменной в строку?",
+  answer: "public static String valueOf(Object obj) {<br>return (obj == null) ? 'null' : obj.toString();<br>}"
+}
+,{
+  question: "Как узнать значение конкретного символа строки, зная его порядковый номер в строке?",
+  answer: "str.charAt(int i) вернет символ по индексу."
+}
+,{
+  question: "Как найти необходимый символ в строке?",
+  answer: "str.indexOf(char ch) или lastIndexOf(char c) - вернет индекс первого и последнего вхождения символа.String fs = '12345678904';<br>int a = fs.indexOf('456'); //3<br>int b = fs.lastIndexOf('4'); //10"
+}
+,{
+  question: "Можно ли синхронизировать доступ к строке?",
+  answer: "String сам по себе потокобезопасный класс. Если мы работаем с изменяемыми строками, то нужно использовать StringBuffer."
+}
+,{
+  question: "Что делает метод intern()?",
+  answer: "Когда метод intern() вызван, если пул строк уже содержит строку, эквивалентную к нашему объекту, что подтверждается методом equals(Object), тогда возвращается ссылка на строку из пула. В противном случае объект строки добавляется в пул и ссылка на этот объект возвращается.Этот метод всегда возвращает строку, которая имеет то же значение, что и текущая строка, но гарантирует что это будет строка из пула уникальных строк."
+}
+,{
+  question: "Чем отличаются и что общего у классов String, StringBuffer и StringBuilder?",
+  answer: "Класс String является immutable - Вы не можете модифицировать объект String, но можете заменить его созданием нового экземпляра. Создание нового экземпляра обходится дороговато://Inefficient version using immutable String String output = 'Some text'; int count = 100; for(int i =0; i<count; i++) { output += i; } return output;Кусок кода, в примере выше создаст 99 новых объектов String, 98 из которых будут тут же откинуты. Создание новых объектов неэффективно.StringBuffer/StringBuilderКласс StringBuffer является mutable - использовать StringBuffer или StringBuilder следует тогда, когда вы хотите модифицировать содержимое. StringBuilder был добавлен в пятой джаве и он во всем идентичен классу StringBuffer, за исключением того, что он не синхронизирован, что делает его значительно шустрее. Но цена скорости - небезопасное поведение в мультипоточной среде.//More efficient version using mutable StringBuffer // set an initial size of 110 StringBuffer output = new StringBuffer(110); output.append('Some text'); for(int i =0; i<count; i++) { output.append(i); } return output.toString();Вышеуказанный код создает только два новых объекта, StringBuffer и строковую константу, которая возвращается. StringBuffer расширяется по мере надобности, что, в свою очередь дороговато, так что лучше инициализировать StringBuffer корректным значением размера.Другой важный момент заключается в том, что создание дополнительных строк не ограничено математическим оператором '+', но существует некоторое количество методов, таких как concat(), trim(), substring(), replace() в классах String, которые генерируют новые объекты."
+}
+,{
+  question: "Как правильно сравнить значения строк двух различных объектов типа String и StringBuffer?",
+  answer: "Привести их к одному типу и сравнить."
+}
+,{
+  question: "Почему строка неизменная и финализированная в Java?",
+  answer: "Есть несколько преимуществ в неизменности строк:Строковый пул возможен только потому, что строка неизменна в Java, таким образом виртуальная машина сохраняет много места в памяти(heap space), поскольку разные строковые переменные указывают на одну переменную в пуле. Если бы строка не была неизмененяемой, тогда бы интернирование строк не было бы возможным, потому что если какая-либо переменная изменит значение, это отразится также и на остальных переменных, ссылающихся на эту строку.Если строка будет изменяемой, тогда это станет серьезной угрозой безопасности приложения. Например, имя пользователя базы данных и пароль передаются строкой для получения соединения с базой данных и в программировании сокетов реквизиты хоста и порта передаются строкой. Так как строка неизменяемая, её значение не может быть изменено, в противном случае любой хакер может изменить значение ссылки и вызвать проблемы в безопасности приложения.Так как строка неизменная, она безопасна для многопоточности и один экземпляр строки может быть совместно использован различными потоками. Это позволяет избежать синхронизации для потокобезопасности, строки полностью потокобезопасны.Строки используются в Java classloader и неизменность обеспечивает правильность загрузки класса при помощи Classloader. К примеру, задумайтесь об экземпляре класса, когда вы пытаетесь загрузить java.sql.Connection класс, но значение ссылки изменено на myhacked.Connection класс, который может осуществить нежелательные вещи с вашей базой данных.Поскольку строка неизменная, её hashcode кэшируется в момент создания и нет необходимости рассчитывать его снова. Это делает строку отличным кандидатом для ключа в Map и его обработка будет быстрее, чем других ключей HashMap. Это причина, почему строка наиболее часто используемый объект в качестве ключа HashMap."
+}
+,{
+  question: "Почему массив символов предпочтительнее строки для хранения пароля?",
+  answer: "Строка неизменяемая в Java и хранится в пуле строк. С тех пор, как она была создана, она остается в пуле, пока не будет удалена сборщиком мусора, поэтому, когда мы думаем, что закончили работу с паролем, он остается доступным в памяти некоторое время, и нет способа избежать этого. Это риск безопасности, поскольку кто-либо, имеющий доступ к дампу памяти сможет найти пароль в виде чистого текста.Если мы используем массив символов для хранения пароля, мы можем очистить его после того, как закончим с ним работать. Таким образом, мы можем контролировать, как долго он находится в памяти, что позволяет избежать риска безопасности, свойственного строке."
+}
+,{
+  question: "Почему строка является популярным ключом в HashMap в Java?",
+  answer: "Поскольку строки неизменны, их хэшкод кэшируется в момент создания, и не требует повторного пересчета. Это делает строки отличным кандидатом для ключа в Map и они обрабатываются быстрее, чем другие объекты-ключи HashMap. Вот почему строки преимущественно используются в качестве ключей HashMap"
+}
+,{
+  question: "Напишите метод удаления данного символа из строки.",
+  answer: "Мы можем использовать метод replaceAll для замены всех вхождений в строку другой строкой. Обратите внимание на то, что метод получает в качестве аргумента строку, поэтому мы используем класс Character для создания строки из символа, и используем её для замены всех символов на пустую строку.public static String removeChar(String str, char ch) {<br>if (str == null)<br>return null;<br>return str.replaceAll(Character.toString(ch), '');<br>}"
+}
+,{
+  question: "Какие есть особенности класса String?",
+  answer: "- Это неизменяемый (immutable) и финализированный тип данных;<br>- Все объекты класса String JVM хранит в пуле строк;<br>- Объект класса String можно получить, используя двойные кавычки;<br>- Можно использовать оператор + для конкатенации строк;<br>- Начиная с Java 7 строки можно использовать в конструкции switch."
+}
+,{
+  question: "Какие GOF-шаблоны применяются в строковом пуле?",
+  answer: "В строковом пуле явно прослеживается GOF шаблон — легковес (flyweight), иначе его называют поселенец. Если же вы увидели тут ещё какой-то шаблон — делитесь в комментарии. Ну а мы поговорим о шаблоне легковесе. Легковес — структурный шаблон проектирования, при котором объект, представляющий себя как уникальный экземпляр в разных местах программы, по факту не является таковым. Легковес экономит память, разделяя общее состояние объектов между собой, вместо хранения одинаковых данных в каждом объекте."
+}
+,
+    ];
+
+    const questionText = document.getElementById('question-text');
+    const answerText = document.getElementById('answer-text');
+    const modal = document.getElementById('modal');
+    const modalAnswer = document.getElementById('modal-answer');
+
+    function toggleAnswer() {
+        const answer = questions[currentQuestionIndex].answer;
+        if (answer.length > MAX_ANSWER_LENGTH) {
+            showModal(answer);
+        } else {
+            if (answerText.classList.contains('hidden')) {
+                answerText.innerHTML = answer;
+                answerText.classList.remove('hidden');
+                questionText.classList.add('hidden');
+            } else {
+                answerText.classList.add('hidden');
+                questionText.classList.remove('hidden');
+            }
+        }
+    }
+
+    function showModal(answer) {
+        modalAnswer.innerHTML = answer;
+        modal.classList.remove('hidden');
+    }
+
+    function showQuestion(index) {
+        questionText.textContent = questions[index].question;
+        answerText.innerHTML = ""; // Скрываем ответ при смене вопроса
+        questionText.classList.remove('hidden');
+        answerText.classList.add('hidden');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>
