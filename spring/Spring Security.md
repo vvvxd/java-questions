@@ -30,72 +30,131 @@ Spring Security построен на концепции фильтров (Servl
 
 В Spring Security цепочка фильтров реализуется через **Servlet Filter**, который является частью спецификации Java Servlet API. Spring Security использует специальный фильтр под названием `FilterChainProxy`, который выступает в роли центрального элемента, управляющего цепочкой фильтров безопасности.
 
-- **FilterChainProxy**: Это основной фильтр, зарегистрированный в контейнере сервлетов (например, Tomcat). Он перехватывает все HTTP-запросы и передает их через цепочку фильтров безопасности.
-- **Security Filter Chain**: Внутри `FilterChainProxy` содержится одна или несколько цепочек фильтров безопасности (`SecurityFilterChain`). Каждая цепочка фильтров соответствует определенному набору URL-шаблонов, определенных в конфигурации (например, `/api/**` или `/admin/**`).
+- **DelegatingFilterProxy**: Это основной фильтр, зарегистрированный в контейнере сервлетов (например, Tomcat). Он перехватывает все HTTP-запросы и передает их через цепочку фильтров безопасности.
+- **Security Filter Chain**: Внутри `DelegatingFilterProxy` содержится одна или несколько цепочек фильтров безопасности (`SecurityFilterChain`). Каждая цепочка фильтров соответствует определенному набору URL-шаблонов, определенных в конфигурации (например, `/api/**` или `/admin/**`).
 
 Каждая цепочка фильтров состоит из набора фильтров (`Filter`), которые выполняются последовательно. Каждый фильтр выполняет свою задачу и передает управление следующему фильтру в цепочке или конечному ресурсу (например, контроллеру Spring MVC).
 
 ---
 
 ### Как работает цепочка фильтров?
-Когда HTTP-запрос поступает в приложение, он проходит через следующие этапы:
+Цепочка фильтров (Filter Chain) в Spring Security — это механизм, который обрабатывает HTTP-запросы последовательно через набор фильтров, каждый из которых выполняет определённую задачу, связанную с безопасностью, аутентификацией или другими аспектами обработки запроса.
 
-1. **Перехват запроса**:
-    - Контейнер сервлетов (например, Tomcat) принимает HTTP-запрос и передает его зарегистрированным фильтрам.
-    - `FilterChainProxy` (реализует интерфейс `javax.servlet.Filter`) перехватывает запрос и определяет, какая цепочка фильтров (`SecurityFilterChain`) должна быть применена на основе URL запроса.
+Процесс обработки запроса через цепочку фильтров выглядит следующим образом:
 
-2. **Выбор цепочки фильтров**:
-    - В конфигурации Spring Security (обычно через `@Configuration` или `SecurityFilterChain` в Java-конфигурации) задаются правила соответствия URL-шаблонов и связанные с ними цепочки фильтров.
-    - Например, запрос к `/api/**` может использовать одну цепочку фильтров, а запрос к `/public/**` — другую или вообще обойти фильтры безопасности.
+1. **Клиент отправляет HTTP-запрос**:
+   Например, `GET /api/resource` с заголовком `Authorization: Bearer <JWT>`.
 
-3. **Выполнение фильтров**:
-    - Каждый фильтр в цепочке вызывается методом `doFilter(ServletRequest, ServletResponse, FilterChain)`.
-    - Фильтр может:
-        - Выполнить свою задачу (например, проверить аутентификацию).
-        - Прервать цепочку, отправив ответ клиенту (например, 403 Forbidden).
-        - Передать управление следующему фильтру в цепочке через `chain.doFilter(request, response)`.
-    - Если ни один фильтр не прерывает выполнение, запрос достигает конечного ресурса (например, контроллера).
+2. **Контейнер сервлетов перехватывает запрос**:
+   - Запрос поступает в `DelegatingFilterProxy`, который делегирует обработку Spring Security.
+   - Spring Security использует `FilterChainProxy` для управления цепочкой фильтров.
 
-4. **Обработка ответа**:
-    - После обработки запроса фильтры могут также модифицировать HTTP-ответ (например, добавить заголовки безопасности, такие как `X-Frame-Options`).
+3. **Последовательное выполнение фильтров**:
+   - `FilterChainProxy` содержит список `SecurityFilterChain`, каждая из которых соответствует определённым URL-шаблонам (например, `/api/**`).
+   - Для подходящей цепочки фильтры выполняются по порядку.
+   - Каждый фильтр вызывает `chain.doFilter(request, response)`, чтобы передать управление следующему фильтру.
+
+4. **Достижение целевого ресурса**:
+   - Если все фильтры успешно обработали запрос, он доходит до контроллера или другого обработчика.
+   - После обработки ответ проходит через цепочку фильтров в обратном порядке.
+
+5. **Возврат ответа клиенту**:
+   - После завершения обработки фильтры могут модифицировать ответ (например, добавить заголовки).
 
 ---
 
 ### Какие есть ключевые фильтры Spring Security?
-Spring Security предоставляет множество встроенных фильтров, которые добавляются в цепочку в зависимости от конфигурации. Вот некоторые из наиболее важных:
 
-1. **SecurityContextPersistenceFilter**:
-    - Отвечает за управление `SecurityContext`, который хранит информацию об аутентифицированном пользователе.
-    - На старте запроса загружает `SecurityContext` из репозитория (например, из `HttpSession`).
-    - После обработки запроса сохраняет `SecurityContext` обратно в репозиторий.
-    - Это позволяет сохранять состояние аутентификации между запросами.
+Spring Security предоставляет около 15 стандартных фильтров, которые выполняются в следующем порядке (если они включены в конфигурации). Порядок приведён в соответствии с типичной конфигурацией для веб-приложения:
 
-2. **UsernamePasswordAuthenticationFilter**:
-    - Обрабатывает аутентификацию по логину и паролю (обычно для формы входа).
-    - Извлекает данные из запроса (например, `username` и `password`) и передает их в `AuthenticationManager` для проверки.
-    - При успешной аутентификации создает объект `Authentication` и помещает его в `SecurityContext`.
+1. **`ChannelProcessingFilter`**:
+   - Проверяет, что запрос использует правильный протокол (например, требует HTTPS для защищённых ресурсов).
+   - Редко используется в API с JWT, так как HTTPS обычно обеспечивается на уровне сервера.
 
-3. **BasicAuthenticationFilter**:
-    - Обрабатывает HTTP Basic Authentication.
-    - Проверяет заголовок `Authorization` в запросе и аутентифицирует пользователя.
+2. **`SecurityContextPersistenceFilter`**:
+   - Загружает `SecurityContext` из репозитория (например, `HttpSession`) в `SecurityContextHolder` в начале запроса.
+   - После обработки запроса сохраняет или очищает `SecurityContext`.
+   - В stateless-режиме (с JWT) сессия не используется, но фильтр всё равно выполняется, чтобы обеспечить чистый `SecurityContext`.
 
-4. **CsrfFilter**:
-    - Защищает от атак CSRF (Cross-Site Request Forgery).
-    - Проверяет наличие CSRF-токена в запросах (например, для POST-запросов).
+3. **`ConcurrentSessionFilter`**:
+   - Управляет сессиями, проверяя, не превышен ли лимит одновременных сессий для пользователя.
+   - Не используется в stateless API с JWT.
 
-5. **AuthorizationFilter**:
-    - Проверяет, имеет ли пользователь доступ к запрашиваемому ресурсу.
-    - Использует `AccessDecisionManager` для принятия решений на основе конфигурации (например, аннотаций `@PreAuthorize` или правил в `SecurityFilterChain`).
+4. **`WebAsyncManagerIntegrationFilter`**:
+   - Интегрирует Spring Security с асинхронной обработкой запросов (например, для `@Async` или WebFlux).
+   - Обеспечивает доступ к `SecurityContext` в асинхронных потоках.
 
-6. **ExceptionTranslationFilter**:
-    - Обрабатывает исключения безопасности, такие как `AccessDeniedException` или `AuthenticationException`.
-    - Перенаправляет пользователя на страницу входа или возвращает ошибку (например, 403 или 401).
+5. **`CsrfFilter`**:
+   - Проверяет CSRF-токены для защиты от межсайтовых подделок запросов.
+   - Обычно отключается для stateless API с JWT (`http.csrf().disable()`), так как JWT передаётся в заголовке.
 
-7. **FilterSecurityInterceptor**:
-    - Выполняет финальную проверку доступа к ресурсу на основе конфигурации.
-    - Работает с `AccessDecisionManager` и `SecurityMetadataSource` для определения прав доступа.
+6. **`LogoutFilter`**:
+   - Обрабатывает запросы на выход (logout).
+   - В контексте JWT редко используется, так как выход обычно реализуется на стороне клиента (удаление токена).
 
-Порядок фильтров в цепочке строго определен, но его можно настроить. Например, `SecurityContextPersistenceFilter` всегда идет первым, чтобы загрузить контекст безопасности, а `FilterSecurityInterceptor` — последним, чтобы проверить доступ.
+7. **`UsernamePasswordAuthenticationFilter`**:
+   - Обрабатывает аутентификацию через форму (логин/пароль).
+   - Не используется для JWT, так как аутентификация выполняется через токен.
+
+8. **`DefaultLoginPageGeneratingFilter`**:
+   - Генерирует страницу логина, если она не настроена.
+   - Не применяется в API с JWT.
+
+9. **`DefaultLogoutPageGeneratingFilter`**:
+   - Генерирует страницу выхода.
+   - Не применяется в API с JWT.
+
+10. **`BasicAuthenticationFilter`**:
+   - Обрабатывает HTTP Basic Authentication.
+   - Может использоваться в API, но обычно заменяется JWT-фильтром.
+
+11. **`RequestCacheAwareFilter`**:
+   - Восстанавливает запросы, сохранённые в кэше (например, после перенаправления на страницу логина).
+   - Не используется в stateless API.
+
+12. **`SecurityContextHolderAwareRequestFilter`**:
+   - Оборачивает запрос в объект, совместимый с `SecurityContextHolder`, предоставляя доступ к данным аутентификации.
+   - Используется редко, но может быть полезен для интеграции с другими системами.
+
+13. **`AnonymousAuthenticationFilter`**:
+   - Устанавливает анонимную аутентификацию (`AnonymousAuthenticationToken`) для запросов, не прошедших аутентификацию.
+   - Используется, если требуется обработка анонимных пользователей.
+
+14. **`SessionManagementFilter`**:
+   - Управляет сессиями (например, фиксирует сессию для предотвращения атак фиксации сессий).
+   - Не используется в stateless API с JWT.
+
+15. **`ExceptionTranslationFilter`**:
+   - Перехватывает исключения, связанные с безопасностью (например, `AuthenticationException`, `AccessDeniedException`), и преобразует их в HTTP-ответы (401, 403).
+   - Важен для обработки ошибок при недействительном JWT.
+
+16. **`FilterSecurityInterceptor`**:
+   - Последний фильтр, проверяет доступ к ресурсу на основе правил авторизации (например, аннотаций `@PreAuthorize` или конфигурации `HttpSecurity`).
+   - Если доступ запрещён, выбрасывает `AccessDeniedException`.
+
+
+Для обработки JWT обычно добавляется кастомный фильтр, например, `JwtAuthenticationFilter`. Его место в цепочке настраивается через методы `addFilterBefore`, `addFilterAfter` или `addFilterAt` в конфигурации `HttpSecurity`.
+
+**Позиция `JwtAuthenticationFilter`**:
+   - В примере фильтр добавлен перед `UsernamePasswordAuthenticationFilter`, так как JWT-аутентификация должна произойти до попыток других видов аутентификации.
+   - Обычно `JwtAuthenticationFilter` размещают после `SecurityContextPersistenceFilter` (чтобы использовать чистый `SecurityContext`) и до `FilterSecurityInterceptor` (чтобы авторизация учитывала аутентификацию из JWT).
+
+
+Для типичного REST API с JWT цепочка фильтров может выглядеть так:
+
+1. **`SecurityContextPersistenceFilter`**: Устанавливает пустой `SecurityContext`.
+2. **`JwtAuthenticationFilter`**: Проверяет JWT, извлекает данные (username, roles), создаёт `Authentication` и устанавливает его в `SecurityContextHolder`.
+3. **`AnonymousAuthenticationFilter`**: Если JWT отсутствует или недействителен, может установить анонимную аутентификацию (зависит от конфигурации).
+4. **`ExceptionTranslationFilter`**: Обрабатывает исключения, например, возвращает 401 при недействительном JWT.
+5. **`FilterSecurityInterceptor`**: Проверяет, имеет ли пользователь доступ к ресурсу (например, на основе ролей из JWT).
+
+
+Порядок фильтров можно изменить, используя методы `addFilterBefore`, `addFilterAfter` или `addFilterAt`. 
+Если фильтр добавлен в неправильное место, это может привести к проблемам (например, `SecurityContext` не будет установлен перед проверкой авторизации).
+
+Spring Security поддерживает несколько `SecurityFilterChain` для разных URL-шаблонов. Например, одна цепочка для `/api/**` с JWT, другая для `/web/**` с формой логина. 
+Порядок цепочек определяется их регистрацией в конфигурации.
+
 
 -----------------------------------------------------------------------------------------------------------------
 
@@ -110,268 +169,1281 @@ UserDetailsService — этот сервис извлекает информац
 
 --------------------------------------------------------------------------------------------------------------------
 
-Что такое делегирующий прокси фильтр?
-
-Класс DelegatingFilterProxy — это класс, который реализует интерфейс javax.Servlet.Filter.
-Это специальный фильтр, который делегирует работу другим бинам, которые также являются фильтрами.
-
---------------------------------------------------------------------------------------------------------------------
-
-Что такое security filter chain?
-
-Цепочка фильтров имплементит интерфейс SecurityFilterChain. Имплементацией, поставляемой Spring Security, является DefaultSecurityFilterChain.
-Конструктор DSFC принимает несколько параметров. Первый параметр — request matcher. Остальные параметры — это фильтры, реализующие интерфейс servlet.Filter. Вот все фильтры, принимаемые DSFC:
-ChannelProcessingFilter
-SecurityContextPersistenceFilter
-ConcurrentSessionFilter
-Любой auth. фильтр: UserNamePasswordAuthenticationFilter / CasAythenticationFilter / BasicAuthenticationFilter
-SecurityContextHolderAwareRequestFilter
-JaasApiIntegrationFilter
-RemeberMeAuthenticationFilter
-AnonymusAuthenticationFilter
-ExceptionTranslationFilter
-FilterSecurityInterceptor
-
---------------------------------------------------------------------------------------------------------------------
-
 Что такое security context?
 
-Основной объект — это SecurityContextHolder. Это место, где хранятся детали о текущем security context, например детали принципала который в текущий момент пользуется приложением. По умолчанию для хранения используется ThreadLocal.
-//получение SecurityContext SecurityHolderContext.getContext()
-Объект, возвращаемый методом getContext() это SecurityContext. Он позволяет получать и устанавливать объект Authentication.
-Authentication представляет следующие свойства:
-Коллекцию полномочий выданных принципалу
-Данные для удостоверения пользователя(логин, пароль)
-Details — доп. информация, если она нужна. Может быть равно null
-Принципал
-Authentication flag — boolean переменная, которая показывает успешно ли прошел проверку принципал
+`SecurityContext` — это интерфейс в Spring Security (`org.springframework.security.core.context.SecurityContext`), который представляет контекст безопасности для текущего потока выполнения (thread). Его основная задача — хранить объект `Authentication`, содержащий информацию о текущем пользователе, его учетных данных и полномочиях.
+
+Ключевые аспекты:
+- **Хранение данных аутентификации**: Содержит информацию о том, кто аутентифицирован (или не аутентифицирован).
+- **Доступность**: Доступен через `SecurityContextHolder` в любом месте приложения.
+- **Потокобезопасность**: Привязан к текущему потоку выполнения, что делает его безопасным для использования в многопоточных приложениях.
+
+
+Интерфейс `SecurityContext` имеет простую структуру и включает следующие методы:
+- `Authentication getAuthentication()`: Возвращает объект `Authentication`, представляющий текущего пользователя.
+- `void setAuthentication(Authentication authentication)`: Устанавливает объект `Authentication` в контекст.
+
+Объект `Authentication` (интерфейс `org.springframework.security.core.Authentication`) содержит:
+- **Principal**: Идентификатор пользователя, обычно объект `UserDetails` (например, имя пользователя или объект, представляющий пользователя).
+- **Credentials**: Учетные данные, использованные для аутентификации (например, пароль). После успешной аутентификации они часто очищаются.
+- **Authorities**: Список прав доступа (реализуется через `GrantedAuthority`), таких как роли (`ROLE_USER`, `ROLE_ADMIN`) или конкретные разрешения.
+- **isAuthenticated()**: Флаг, указывающий, аутентифицирован ли пользователь.
+
+`SecurityContextHolder` — это утилитный класс, который управляет доступом к `SecurityContext`. Он предоставляет статические методы для получения и установки контекста безопасности.
+
+Основные методы:
+- `SecurityContext getContext()`: Возвращает текущий `SecurityContext`.
+- `void setContext(SecurityContext context)`: Устанавливает новый `SecurityContext`.
+- `void clearContext()`: Очищает контекст (например, при логауте).
+
+**Стратегии хранения**:
+`SecurityContextHolder` использует различные стратегии для хранения `SecurityContext`:
+1. **`MODE_THREADLOCAL`** (по умолчанию):
+   - Хранит `SecurityContext` в `ThreadLocal`, что делает его доступным только в текущем потоке.
+   - Подходит для большинства веб-приложений, где каждый HTTP-запрос обрабатывается в отдельном потоке.
+2. **`MODE_INHERITABLETHREADLOCAL`**:
+   - Аналогично `ThreadLocal`, но контекст наследуется дочерними потоками.
+   - Используется в асинхронных приложениях или при работе с пулами потоков.
+3. **`MODE_GLOBAL`**:
+   - Хранит `SecurityContext` в статической переменной, доступной для всех потоков.
+   - Редко используется, так как не потокобезопасно.
+
+---
+
+###  **Как SecurityContext работает на уровне запросов**?
+
+Spring Security обрабатывает запросы через цепочку фильтров (`FilterChain`), которая представляет собой последовательность фильтров сервлета. Каждый фильтр выполняет определённую задачу, и для JWT обычно добавляется кастомный фильтр, например `JwtAuthenticationFilter`, наследующийся от `OncePerRequestFilter` (выполняется один раз за запрос).
+
+#### 1  Основные фильтры, связанные с `SecurityContext`:
+1. **SecurityContextPersistenceFilter**: Первый фильтр в цепочке, который отвечает за управление `SecurityContext`. Он:
+   - Проверяет, есть ли `SecurityContext` в хранилище (например, в `HttpSession`, если используется сессия).
+   - Если сессия не используется (как в случае с JWT), создаёт пустой `SecurityContext` для текущего запроса.
+   - После обработки запроса сохраняет или очищает `SecurityContext`.
+2. **JwtAuthenticationFilter**: Кастомный фильтр для обработки JWT.
+3. **FilterSecurityInterceptor**: Последний фильтр, который проверяет права доступа к ресурсам на основе информации в `SecurityContext`.
+
+### 2 **Работа JwtAuthenticationFilter**
+`JwtAuthenticationFilter` — это сердце обработки JWT. Рассмотрим его работу шаг за шагом:
+
+#### **Извлечение токена**
+Фильтр проверяет заголовок `Authorization` в запросе:
+```java
+private String extractToken(HttpServletRequest request) {
+    String bearerToken = request.getHeader("Authorization");
+    if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+        return bearerToken.substring(7); // Удаляем префикс "Bearer "
+    }
+    return null;
+}
+```
+- Если токен отсутствует, фильтр пропускает запрос дальше без установки `SecurityContext` (это может привести к анонимному доступу или ошибке, если ресурс защищён).
+- Если токен присутствует, фильтр переходит к валидации.
+
+#### **Валидация JWT**
+Валидация токена включает несколько проверок:
+- **Синтаксис токена**: Проверяется, что токен состоит из трёх частей (Header, Payload, Signature).
+- **Подпись**: Проверяется подлинность токена с использованием секретного ключа (для симметричных алгоритмов, например, HS256) или публичного ключа (для асимметричных, например, RS256).
+- **Срок действия**: Проверяется claim `exp` (expiration time). Если токен просрочен, выбрасывается исключение.
+- **Эмитент и аудитория**: Опционально проверяются claims `iss` (issuer) и `aud` (audience).
+- **Дополнительные проверки**: Например, проверка `nbf` (not before) или кастомных claims.
+
+
+#### **Извлечение данных из токена**
+Если токен валиден, из его `Payload` извлекаются данные:
+- `sub` (subject): Идентификатор пользователя (например, username или userId).
+- `roles` или `authorities`: Список ролей/прав (например, `["ROLE_USER", "ROLE_ADMIN"]`).
+- Другие claims: Например, email, имя или кастомные атрибуты.
+
+#### **Создание объекта Authentication**
+После извлечения данных создаётся объект `Authentication`, который представляет аутентифицированного пользователя. Обычно используется `UsernamePasswordAuthenticationToken`:
+- **Principal**: Объект `UserDetails` (например, `org.springframework.security.core.userdetails.User` или кастомная реализация).
+- **Credentials**: Для JWT это поле обычно `null`, так как токен сам по себе является доказательством аутентификации.
+- **Authorities**: Список ролей (`GrantedAuthority`), извлечённых из токена.
+
+### 3 **Установка SecurityContext**
+После создания объекта `Authentication` он помещается в `SecurityContext`, который хранится в `SecurityContextHolder`. `SecurityContextHolder` — это статический класс, управляющий контекстом безопасности для текущего потока выполнения.
+
+### 4 **Пропуск запроса через цепочку фильтров**
+После установки `SecurityContext` фильтр вызывает `filterChain.doFilter(request, response)`, передавая запрос дальше по цепочке. Другие фильтры (например, `UsernamePasswordAuthenticationFilter`, `ExceptionTranslationFilter`) могут использовать `SecurityContext` для дополнительных проверок.
+
+### 5. **Очистка SecurityContext**
+После обработки запроса `SecurityContextPersistenceFilter` очищает `SecurityContextHolder`:
+Это критично для stateless-приложений с JWT, чтобы данные одного запроса не "утекли" в другой.
 
 --------------------------------------------------------------------------------------------------------------------
 
-Как установить перехват перехода пользователя по определенным URL?
+Расскажи про OncePerRequestFilter?
 
-@Override protected void configure(HttpSecurity http) throws Exception { http.authorizeRequests()
-//игнорирование всех запросов на /resources .antMatchers("/resources/**").permitAll()
-//для остальных запросов требуется одна из 2 ролей
-.antMatchers("/").hasAnyRole("ANONYMOUS", "USER") .antMatchers("/login)*").hasAnyRole("ANONYMOUS", "USER") .antMatchers("/logoutr").hasAnyRole("ANONYMOUS", "USER")
-//запрос на ресурсы ниже требуют роль ADMIN .antMatchers("iadmin/*").hasRole("ADMIN") .antMatchers("/events/").hasRole("ADMIN") }
+`OncePerRequestFilter` — это базовый класс в Spring Framework, который расширяет `GenericFilterBean` и гарантирует, что метод фильтрации (`doFilterInternal`) вызывается **ровно один раз** для каждого HTTP-запроса, даже если запрос перенаправляется (forward) или повторно обрабатывается внутри приложения (например, в случае включения других сервлетов или фильтров).
 
---------------------------------------------------------------------------------------------------------------------
+Это важно, так как в стандартной цепочке фильтров Java Servlet API фильтр может быть вызван несколько раз для одного запроса, например, при использовании `RequestDispatcher` для перенаправления или включения других ресурсов.
 
-Что означает * в методах antMatchers и mvcMatchers()?
+### **Зачем использовать OncePerRequestFilter?**
+- **Гарантия однократного выполнения**: Фильтр не будет вызван повторно для одного запроса, что предотвращает дублирование логики (например, повторную проверку JWT или модификацию заголовков).
+- **Удобство для Spring Security**: `OncePerRequestFilter` широко используется в Spring Security для реализации фильтров аутентификации и авторизации (например, `JwtAuthenticationFilter`).
+- **Совместимость с асинхронной обработкой**: Поддерживает асинхронные запросы и корректно работает в многопоточной среде.
 
-Это выражение означает "любой".
-Есть 2 вида:
-* — перехватывает только на том уровне, на котором используется.
-  Например, паттерн "/orders/*" проверит права пользователя, если пользователь перейдет по
-  /orders/aliens или /orders/1, но не /orders/alien/1.
-  ** — перехватывает на всех уровнях.Будут проверены любые запросы, /orders/aliens, /orders/1, /orders/alien/1.
+### **Как работает OncePerRequestFilter?**
+- **Механизм**: Когда запрос поступает в цепочку фильтров, Spring проверяет, был ли фильтр уже выполнен для данного запроса. Это достигается с помощью атрибута запроса (`request.getAttribute`), который используется для отслеживания выполнения фильтра.
+- **Метод doFilterInternal**: Разработчик должен переопределить абстрактный метод `doFilterInternal(HttpServletRequest, HttpServletResponse, FilterChain)`, который содержит логику фильтра.
+- **Пропуск выполнения**: Если фильтр уже был выполнен для запроса, `OncePerRequestFilter` пропускает повторный вызов и передает управление следующему фильтру в цепочке.
 
 --------------------------------------------------------------------------------------------------------------------
+###  **Что такое `UserDetailsService`?**
+`UserDetailsService` — это интерфейс в пакете `org.springframework.security.core.userdetails`, который определяет один метод:
 
-Почему mvcMatcher более защищенный чем antMatcher?
+```java
+UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
+```
 
-Потому что antMatcher("/service") сопоставляет путь запроса только с "/service", в то время как mvcMatcher("/service") сопоставляет с "/service", "/service.html", "/service.abc".
+- **Назначение**:
+   - Загружает данные пользователя (объект `UserDetails`) по имени пользователя (`username`).
+   - Используется Spring Security для аутентификации, когда нужно проверить, существует ли пользователь и какие у него права.
+- **Ключевые задачи**:
+   - Поиск пользователя в источнике данных (база данных, LDAP, in-memory хранилище и т.д.).
+   - Возвращение объекта `UserDetails`, который содержит имя пользователя, пароль и список ролей/прав (`GrantedAuthority`).
+   - Если пользователь не найден, выбрасывается исключение `UsernameNotFoundException`.
+
+---
+
+### Какая роль `UserDetailsService` в Spring Security**
+`UserDetailsService` используется в процессе аутентификации, управляемом `AuthenticationManager`. Вот как это работает на высоком уровне:
+
+1. **Получение запроса на аутентификацию**:
+   - Например, пользователь отправляет логин и пароль через форму или JWT-токен в заголовке `Authorization`.
+2. **Извлечение имени пользователя**:
+   - Для форм-логина: имя пользователя извлекается из формы (фильтр `UsernamePasswordAuthenticationFilter`).
+   - Для JWT: имя пользователя извлекается из токена (например, из claim `sub`) в кастомном фильтре (`JwtAuthenticationFilter`).
+3. **Вызов `UserDetailsService`**:
+   - `AuthenticationManager` передаёт имя пользователя в `UserDetailsService.loadUserByUsername()`.
+   - `UserDetailsService` возвращает объект `UserDetails`, содержащий данные пользователя.
+4. **Проверка подлинности**:
+   - Для форм-логина: Spring Security сравнивает введённый пароль с паролем из `UserDetails` (с учётом шифрования, например, BCrypt).
+   - Для JWT: Пароль не проверяется, так как токен уже валидирован, но данные из `UserDetails` (например, роли) используются для создания объекта `Authentication`.
+5. **Установка `SecurityContext`**:
+   - После успешной аутентификации создаётся объект `Authentication` (например, `UsernamePasswordAuthenticationToken`) и помещается в `SecurityContextHolder`.
+
+---
+
+### Что такое `UserDetails`
+`UserDetails` — это интерфейс, который возвращается методом `loadUserByUsername`. Он предоставляет основные данные о пользователе:
+
+```java
+public interface UserDetails extends Serializable {
+    Collection<? extends GrantedAuthority> getAuthorities(); // Роли/права пользователя
+    String getPassword(); // Пароль
+    String getUsername(); // Имя пользователя
+    boolean isAccountNonExpired(); // Не истёк ли аккаунт
+    boolean isAccountNonLocked(); // Не заблокирован ли аккаунт
+    boolean isCredentialsNonExpired(); // Не истёк ли пароль
+    boolean isEnabled(); // Активен ли аккаунт
+}
+```
+
+- Реализация `UserDetails` (например, `org.springframework.security.core.userdetails.User`) обычно включает:
+   - Имя пользователя.
+   - Пароль (обычно зашифрованный).
+   - Список ролей (`GrantedAuthority`), например, `ROLE_USER`, `ROLE_ADMIN`.
+   - Флаги состояния аккаунта (активен, не заблокирован и т.д.).
+
+
+Spring Security предоставляет стандартные реализации, но чаще всего разработчики создают кастомные реализации для интеграции с базой данных или другими источниками.
+
+---
+
+###  **Использование `UserDetailsService` с JWT**
+В контексте JWT `UserDetailsService` используется немного иначе, так как аутентификация основана на токене, а не на логине/пароле. Вот как это работает:
+
+1. **Извлечение данных из JWT**:
+   - Кастомный фильтр (`JwtAuthenticationFilter`) извлекает имя пользователя (например, claim `sub`) из JWT.
+   - Токен уже валидирован (подпись, срок действия и т.д.), поэтому проверка пароля не требуется.
+
+2. **Вызов `UserDetailsService`**:
+   - `JwtAuthenticationFilter` вызывает `UserDetailsService.loadUserByUsername(username)` для получения данных пользователя (например, ролей).
+   - Это нужно, чтобы загрузить дополнительные данные о пользователе, не хранящиеся в токене, или подтвердить существование пользователя.
+
+3. **Создание `Authentication`**:
+   - На основе `UserDetails` создаётся объект `Authentication` (например, `UsernamePasswordAuthenticationToken`).
+   - Этот объект помещается в `SecurityContextHolder`.
+
+- **Ключевой момент**:
+   - `UserDetailsService` используется для загрузки ролей и других данных, которые могут не храниться в JWT (например, дополнительные атрибуты пользователя).
+   - Если все данные (включая роли) уже содержатся в JWT, вызов `UserDetailsService` можно пропустить, но это менее гибко, так как привязывает приложение к данным в токене.
+   - Вызов `UserDetailsService.loadUserByUsername` может быть затратным (например, запрос к базе данных).
+   - Для оптимизации можно использовать кэширование (например, с `@Cacheable`):
 
 --------------------------------------------------------------------------------------------------------------------
+### 1. **Что такое `AuthenticationManager`?**
+`AuthenticationManager` — это интерфейс в пакете `org.springframework.security.authentication`, который определяет один метод:
 
-Spring поддерживает хэширование паролей? Что такое соль?
-
-Да, поддерживает. Для хэширования существует интерфейс PasswordEncoder, который содержит только один метод:
-static PasswordEncoder createDelegatingPasswordEncoder(), который возвращает DelegatePasswordEncoder, настроенный по умолчанию.
-Соль используется для вычисления хеш-значения пароля. Это последовательность рандомных чисел, которые используются для преобразования текстового пароля в хеш. Соль хранится в открытом виде рядом с хеш-паролем и может использоваться в дальнейшем при конвертации чистого пароля в хеш при новом логине пользователя.
-
---------------------------------------------------------------------------------------------------------------------
-
-Зачем нужна защита для методов? Как ее установить?
-
-Spring Security поддерживает защиту отдельных методов в бинах(например, в контроллерах). Это дополнительный слой защиты для приложения.
-Ее требуется указать явно, используя аннотацию @EnableGlobalMethodSecurity.
-
---------------------------------------------------------------------------------------------------------------------
-
-Что делает аннотация @RolesAllowed?
-
-Эта аннотация основана на JSR-250.@RolesAllowed позволяет настроить доступ к методам(например, в классе-контроллере) с помощью ролей.Пример: @RolesAllowed("ADMIN") будет пропускать только пользователей с ролью ADMIN
-Для использования нужно установить @EnableGlobalMethodSecurity(jsr250Enabled=true) на @Configuration классе + нужно чтобы эта аннотация была в classpath.
-
---------------------------------------------------------------------------------------------------------------------
-
-Расскажите про @PreAuthorize
-
-@PreAuthorize позволяет настроить доступ к методу используя SpEL.Для использования нужно установить @EnableGlobalMethodSecurity(prePostEnabled=true)
-
---------------------------------------------------------------------------------------------------------------------
-
-Как реализованы все эти аннотации?
-
-Используется сквозная функциональность, с помощью Spring AOP(прокси-объекты).
-
---------------------------------------------------------------------------------------------------------------------
-
-Опишите работу AuthenticationManager
-
-public interface AuthenticationManager {
+```java
 Authentication authenticate(Authentication authentication) throws AuthenticationException;
-}
+```
 
-AuthenticationManager представляет из себя интрефейс, который принимает Authentication и возвращает тоже Authentication.В нашем случае в имплементацией Authentication будет UsernamePasswordAuthenticationToken.Можно было бы реализовать AuthenticationManager самому, но смысла в этом мало, существует дефолтная реализация — ProviderManager.ProviderManager авторизацию делегирует другому интерфейсу:
+- **Назначение**:
+   - Принимает объект `Authentication`, содержащий учетные данные (например, имя пользователя и пароль или токен).
+   - Проверяет их подлинность и возвращает полностью аутентифицированный объект `Authentication`, если проверка успешна.
+   - Если аутентификация не удалась, выбрасывает `AuthenticationException` (например, `BadCredentialsException`).
 
-public interface AuthenticationProvider {
+- **Ключевые задачи**:
+   - Делегирует проверку учетных данных провайдерам аутентификации (`AuthenticationProvider`).
+   - Управляет процессом аутентификации, координируя работу различных компонентов (например, `UserDetailsService` для загрузки данных пользователя).
 
-Authentication authenticate(Authentication authentication) throws AuthenticationException;
+---
 
-boolean supports(Class<?> authentication);
-}
+### 2. **Как работает `AuthenticationManager`?**
+`AuthenticationManager` — это центр управления аутентификацией в Spring Security. Вот пошаговый процесс его работы:
 
-Когда мы передаем объект Authentication в ProviderManager, он перебирает существующие AuthenticationProvider-ры и проверяет суппортит ли AuthenticationProvider эту имплементацию Authentication
+1. **Получение запроса на аутентификацию**:
+   - Запрос поступает через фильтр, например:
+      - `UsernamePasswordAuthenticationFilter` для форм-логина (логин/пароль).
+      - Кастомный `JwtAuthenticationFilter` для проверки JWT.
+   - Фильтр создаёт объект `Authentication`, содержащий учетные данные (например, `UsernamePasswordAuthenticationToken` для имени пользователя и пароля).
 
-public boolean supports(Class<?> authentication) {
-return (UsernamePasswordAuthenticationToken.class .isAssignableFrom(authentication));
-}
+2. **Вызов `authenticate`**:
+   - Фильтр передаёт объект `Authentication` в `AuthenticationManager.authenticate()`.
+   - `AuthenticationManager` делегирует проверку одному или нескольким `AuthenticationProvider`, которые поддерживают данный тип `Authentication`.
 
-В результате внутри AuthenticationProvider.authenticate мы уже можем скастить переданный Authentication в нужную реализацию без каст эксепшена. Далее из конкретной реализации вытаскиваем креденшеналы. Если аутентификация не удалась AuthenticationProvider должен бросить эксепшен ,ProviderManagerпоймает его и попробует следующий AuthenticationProvider из списка, если ни один AuthenticationProvider не вернет успешную аутентификацию, то ProviderManager пробросит последний пойманный эксепшен.
-Далее BasicAuthenticationFilter сохраняет полученный Authentication в SecurityContextHolderSecurityContextHolder.getContext().setAuthentication(authResult);
-Процесс аутентификации на этом завершен.
-Если выбросится AuthenticationException то будет сброшен SecurityContextHolder.clearContext();контекст и вызовится AuthenticationEntryPoint.
+3. **Проверка учетных данных**:
+   - `AuthenticationProvider` (например, `DaoAuthenticationProvider`) использует `UserDetailsService` для загрузки данных пользователя по имени пользователя.
+   - Проверяет учетные данные:
+      - Для форм-логина: сравнивает введённый пароль с хранимым (обычно зашифрованным, например, с помощью BCrypt).
+      - Для JWT: проверяет валидность токена (подпись, срок действия и т.д.).
+   - Если проверка успешна, возвращается заполненный объект `Authentication` с данными пользователя (имя, роли, статус аутентификации).
+   - Если проверка не удалась, выбрасывается исключение (например, `BadCredentialsException`).
 
-public interface AuthenticationEntryPoint {
-void commence(HttpServletRequest request, HttpServletResponse response,
-AuthenticationException authException) throws IOException, ServletException;
-}
+4. **Установка `SecurityContext`**:
+   - Успешно аутентифицированный объект `Authentication` помещается в `SecurityContextHolder`:
+     ```java
+     SecurityContextHolder.getContext().setAuthentication(authentication);
+     ```
+   - Это делает данные пользователя доступными для последующей обработки запроса (например, проверки авторизации).
 
-Задачей AuthenticationEntryPoint явялется записать в ответ информацию о том что аутентификация не удалась.В случае бейсик аутентификации это будет:
+5. **Обработка ошибок**:
+   - Если аутентификация не удалась, `ExceptionTranslationFilter` перехватывает `AuthenticationException` и возвращает HTTP-ответ (например, 401 Unauthorized).
 
-response.addHeader("WWW-Authenticate", "Basic realm=\"" + realmName + "\"");
-response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage());
+---
 
-В результате браузер покажет окошко basic авторизации.
+### 3. **Роль `AuthenticationManager` в контексте JWT**
+В приложениях, использующих JWT, `AuthenticationManager` играет менее центральную роль, так как проверка токена часто выполняется в кастомном фильтре (`JwtAuthenticationFilter`). Однако он всё равно может использоваться в двух сценариях:
 
---------------------------------------------------------------------------------------------------------------------
+1. **Инициация аутентификации (выдача JWT)**:
+   - Когда пользователь отправляет логин и пароль (например, через эндпоинт `/login`), `AuthenticationManager` проверяет их через `UserDetailsService` и `PasswordEncoder`.
+   - После успешной аутентификации сервер генерирует JWT и возвращает его клиенту.
 
-Расскажите про фильтры в SecurityFilterChain
 
-0 = {WebAsyncManagerIntegrationFilter}
-Нам не очень интересен, согласно документации он «интегрирует» SecurityContext с WebAsyncManager который отвественнен за асинхронные запросы.
+2. **Проверка JWT в фильтре**:
+   - Для последующих запросов с JWT `AuthenticationManager` обычно не используется напрямую, так как валидация токена выполняется в `JwtAuthenticationFilter`.
+   - Однако `AuthenticationManager` может быть вызван, если требуется дополнительная проверка (например, загрузка данных пользователя через `UserDetailsService`).
 
-1 = {SecurityContextPersistenceFilter}
-Ищет SecurityContext в сессии и заполняет SecurityContextHolder если находит.По умолчанию используется ThreadLocalSecurityContextHolderStrategy которая хранит SecurityContext в ThreadLocal переменной.
+   - **Примечание**: В этом случае `AuthenticationManager` не используется, так как JWT уже содержит проверенные данные. Однако `UserDetailsService` может вызываться для загрузки дополнительных данных (например, ролей).
 
-2 = {HeaderWriterFilter}
-Просто добавляет заголовки в response.Отключаем кэш:
-- Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-- Pragma: no-cache- Expires: 0
 
-Не разрешаем браузерам автоматически определять тип контента:
-- X-Content-Type-Options: nosnif
-
-Не разрешаем iframe
-- X-Frame-Options: DENY
-
-Включаем встроенную зашиту в браузер от cross-site scripting (XSS)
-- X-XSS-Protection: 1; mode=block
-
-3 = {CsrfFilter}
-Пожалуй нет ни одного разработчика который при знакомстве с SS не столкнулся бы с ошибкой «отсутсвия csrf токена».Почему мы не встречали эту ошибку ранее? Все просто, мы запускали методы на которых нет csrf защиты.
-
-4 = {LogoutFilter}
-Далее идет logout фильтр, он проверяет совпадает ли url c паттерномAnt [pattern='/logout', POST] - по умолчаниюи запускает процедуру логаута
-
-по дефолту происходит следующие:
-Удаляется Csrf токен.
-Завершается сессия
-Чистится SecurityContextHolder
-
-5 = {BasicAuthenticationFilter}
-Теперь мы добрались непосредственно до аутентификации. Что происходит внутри?Фильтр проверяет, есть ли заголовок Authorization со значением начинающийся на BasicЕсли находит, извлекает логин\пароль и передает их вAuthenticationManager
-
-6 = {RequestCacheAwareFilter}
-Для чего нужен этот фильтр? Представим сценарий:
-1. Пользователь заходит на защишенный url.
-2. Его перекидывает на страницу логина.
-3. После успешной авторизации пользователя перекидывает на страницу которую он запрашивал в начале.
-
-Именно для для восстановления оригинального запроса существует этот фильтр.Внутри проверяется есть ли сохраненный запрос, если есть им подменяется текущий запрос.Запрос сохраняется в сессии, на каком этапе он сохраняется будет написанно ниже.
-
-7 = {SecurityContextHolderAwareRequestFilter}
-Оборачивает существущий запрос в SecurityContextHolderAwareRequestWrapper
-
-8 = {AnonymousAuthenticationFilter}
-Если к моменту выполнения этого фильтра SecurityContextHolder пуст, т.е. не произошло аутентификации фильтр заполняет объект SecurityContextHolder анонимной аутентификацией — AnonymousAuthenticationToken с ролью «ROLE_ANONYMOUS».Это гарарантирует что в SecurityContextHolder будет объект, это позволяет не бояться NP, а также более гибко подходить к настройке доступа для неавторизованных пользователей.
-
-9 = {SessionManagementFilter}
-На это этапе производятся действия связанные с сессией.Это может быть:
-— смена идентификатора сессии
-— ограничени количества одновременных сессий
-— сохранение SecurityContext в securityContextRepository
-
-В нашем случае происходит следующе: SecurityContextRepository с дефолтной реализацией HttpSessionSecurityContextRepository сохраняет SecurityContext в сессию.Вызывается sessionAuthenticationStrategy.onAuthentication
-
-Происходят 2 вещи:
-1. По умолчанию включенна защита от session fixation attack, т.е. после аутенцификации меняется id сессии.
-2. Если был передан csrf токен, генерируется новый csrf токен
-
-10 = {ExceptionTranslationFilter}
-К этому моменту SecurityContext должен содеражть анонимную, либо нормальную аутентификацию.ExceptionTranslationFilter прокидывает запрос и ответ по filter chain и обрабатывает возможные ошибки авторизации.
-
-SS различает 2 случая:
-1. AuthenticationException Вызывается sendStartAuthentication, внутри которого происходит следующиее:
-   SecurityContextHolder.getContext().setAuthentication(null;— отчищает SecurityContextHolder
-
-requestCache.saveRequest(request, response);— сохраняет в requestCache текущий запрос, чтобы RequestCacheAwareFilter было что восстанавливать.
-
-authenticationEntryPoint.commence(request, response, reason);— вызывает authenticationEntryPoint — который записывает в ответ сигнал о том что необходимо произвести аутентификацию (заголовки \ редирект)
-
-2. AccessDeniedExceptionТут опять возможны 2 случая:
-1. Пользователь с анонимной аутентификацией, или с аутентификацией по rememberMe токену вызывается sendStartAuthentication
-2. Пользователь с полной, не анонимной аутентификацией вызывается:accessDeniedHandler.handle(request, response, (AccessDeniedException) exception)который по дефолту проставляет ответ forbidden 403
-
-11 = {FilterSecurityInterceptor}
-На последнем этапе происходит авторизация на основе url запроса.FilterSecurityInterceptor наследуется от AbstractSecurityInterceptor и решает, имеет ли текущий пользователь доступ до текущего url.Существует другая реализация MethodSecurityInterceptor который отвественнен за допуск до вызова метода, при использовании аннотаций @Secured\@PreAuthorize.Внутри вызывается AccessDecisionManagerЕсть несколько стратегий принятия решения о том давать ли допуск или нет, по умолчанию используется: AffirmativeBased
+Spring Security обычно использует `ProviderManager` как стандартную реализацию `AuthenticationManager`. `ProviderManager` управляет списком `AuthenticationProvider`, каждый из которых обрабатывает определённый тип аутентификации (например, логин/пароль, JWT, OAuth2).
 
 --------------------------------------------------------------------------------------------------------------------
 
-Основные фильтры в Spring Security
+### Какие есть аннотации для методной безопасности?
+Эти аннотации применяются для контроля доступа к методам или классам и работают в рамках **методной безопасности**, которая включается с помощью аннотации `@EnableMethodSecurity` в конфигурации Spring.
 
-WebAsyncManagerIntegrationFilter — Интегрирует SecurityContext с WebAsyncManager
+#### 1.1. `@PreAuthorize`
+- **Описание**: Проверяет права доступа **до выполнения метода**. Если проверка не пройдена, метод не вызывается, и выбрасывается `AccessDeniedException`.
+- **Назначение**: Используется для проверки ролей, прав или сложных условий на основе SpEL (Spring Expression Language).
+- **Применение**:
+   - Проверка ролей, прав или параметров метода.
+   - Подходит для большинства сценариев авторизации.
+- **Пример**:
+  ```java
+  @PreAuthorize("hasRole('ADMIN')")
+  public List<User> getAllUsers() {
+      return userRepository.findAll();
+  }
 
-SecurityContextPersistenceFilter — Ищет SecurityContext в сессии и заполняет SecurityContextHolder если находит
+  @PreAuthorize("#username == authentication.name")
+  public User getUserProfile(String username) {
+      return userRepository.findByUsername(username);
+  }
+  ```
+   - В первом примере доступ разрешён только пользователям с ролью `ROLE_ADMIN`.
+   - Во втором — метод вызывается, только если переданный `username` совпадает с именем текущего пользователя.
 
-HeaderWriterFilter — Добавляет «security» заголовки в ответ
+#### 1.2. `@PostAuthorize`
+- **Описание**: Проверяет права доступа **после выполнения метода**, на основе возвращённого результата. Если проверка не пройдена, выбрасывается `AccessDeniedException`, и результат не возвращается.
+- **Назначение**: Используется, когда доступ зависит от данных, возвращённых методом (например, проверка владельца объекта).
+- **Применение**:
+   - Проверка прав на основе возвращённых данных.
+   - Менее распространена, так как метод выполняется полностью, даже если доступ запрещён.
+- **Пример**:
+  ```java
+  @PostAuthorize("returnObject.owner == authentication.name")
+  public Document getDocument(Long id) {
+      return documentRepository.findById(id).orElseThrow();
+  }
+  ```
+   - Доступ предоставляется, если поле `owner` возвращённого объекта `Document` совпадает с именем текущего пользователя.
 
-CsrfFilter — Проверяет на наличие сsrf токена
+#### 1.3. `@PreFilter`
+- **Описание**: Фильтрует входные параметры метода (обычно коллекции) **до выполнения метода**, оставляя только те элементы, которые соответствуют условию SpEL.
+- **Назначение**: Используется для фильтрации данных, передаваемых в метод, на основе прав пользователя.
+- **Применение**:
+   - Подходит для методов, принимающих списки или массивы, где нужно ограничить доступ к определённым элементам.
+- **Пример**:
+  ```java
+  @PreFilter("filterObject.owner == authentication.name")
+  public List<Document> processDocuments(List<Document> documents) {
+      return documentService.process(documents);
+  }
+  ```
+   - Фильтрует входной список `documents`, оставляя только те документы, где `owner` совпадает с текущим пользователем.
 
-LogoutFilter — Выполняет logout
+#### 1.4. `@PostFilter`
+- **Описание**: Фильтрует возвращаемые данные (обычно коллекции) **после выполнения метода**, оставляя только те элементы, которые соответствуют условию SpEL.
+- **Назначение**: Используется для фильтрации результата метода на основе прав пользователя.
+- **Применение**:
+   - Подходит для методов, возвращающих списки, где нужно ограничить доступ к части данных.
+- **Пример**:
+  ```java
+  @PostFilter("filterObject.owner == authentication.name")
+  public List<Document> getAllDocuments() {
+      return documentRepository.findAll();
+  }
+  ```
+   - Возвращает только те документы из списка, где `owner` совпадает с текущим пользователем.
 
-BasicAuthenticationFilter — Производит basic аутентификацию
+#### 1.5. `@Secured`
+- **Описание**: Проверяет наличие указанных ролей у пользователя **до выполнения метода**. Если роли отсутствуют, метод не вызывается, и выбрасывается `AccessDeniedException`.
+- **Назначение**: Простая альтернатива `@PreAuthorize` для проверки ролей без использования SpEL.
+- **Применение**:
+   - Подходит для простых проверок ролей.
+   - Менее гибкая, чем `@PreAuthorize`, так как не поддерживает сложные выражения.
+- **Пример**:
+  ```java
+  @Secured("ROLE_ADMIN")
+  public List<User> getAllUsers() {
+      return userRepository.findAll();
+  }
+  ```
+   - Доступ разрешён только пользователям с ролью `ROLE_ADMIN`.
 
-RequestCacheAwareFilter — Восстанавливает сохраненный до аутентификации запрос, если такой есть
+#### 1.6. `@RolesAllowed`
+- **Описание**: Аналог `@Secured`, определён в стандарте JSR-250 (Java Security). Проверяет наличие указанных ролей **до выполнения метода**.
+- **Назначение**: Используется для совместимости с JSR-250 или в приложениях, где требуется стандартная аннотация.
+- **Применение**:
+   - Практически идентична `@Secured`, но используется в контексте JSR-250.
+- **Пример**:
+  ```java
+  @RolesAllowed({"ROLE_ADMIN", "ROLE_MANAGER"})
+  public List<User> getAllUsers() {
+      return userRepository.findAll();
+  }
+  ```
+   - Доступ разрешён пользователям с ролями `ROLE_ADMIN` или `ROLE_MANAGER`.
 
-SecurityContextHolderAwareRequestFilter — Оборачивает существущий запрос в SecurityContextHolderAwareRequestWrapper
+---
 
-AnonymousAuthenticationFilter — Заполняет SecurityContext ананонимной аутентификацией
+### Какие есть аннотации аннотации для включения безопасности?
+Эти аннотации используются на уровне конфигурации приложения для активации механизмов безопасности.
 
-SessionManagementFilter — Выполняет действия связанные с сессией
+#### 2.1. `@EnableWebSecurity`
+- **Описание**: Включает поддержку Spring Security для веб-приложения и позволяет настраивать цепочку фильтров через `SecurityFilterChain`.
+- **Назначение**: Активирует Spring Security и регистрирует `FilterChainProxy` для обработки HTTP-запросов.
+- **Применение**:
+   - Используется в конфигурационном классе для настройки фильтров, аутентификации и авторизации.
+- **Пример**:
+  ```java
+  @Configuration
+  @EnableWebSecurity
+  public class SecurityConfig {
 
-ExceptionTranslationFilter — Обрабатывает AuthenticationException\AccessDeniedException которые происходят ниже по стеку.
+      @Bean
+      public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+          http
+              .csrf().disable()
+              .authorizeHttpRequests()
+                  .requestMatchers("/public/**").permitAll()
+                  .anyRequest().authenticated()
+              .and()
+              .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+          return http.build();
+      }
+  }
+  ```
 
-FilterSecurityInterceptor — Проверяет имеет ли текущей пользователь доступ к текущему url.
+#### 2.2. `@EnableMethodSecurity`
+- **Описание**: Включает поддержку методной безопасности, позволяя использовать аннотации `@PreAuthorize`, `@PostAuthorize`, `@PreFilter`, `@PostFilter`, `@Secured` и `@RolesAllowed`.
+- **Назначение**: Активирует `MethodSecurityInterceptor` для обработки аннотаций на методах.
+- **Применение**:
+   - Используется в конфигурации для включения проверок на уровне методов.
+- **Пример**:
+  ```java
+  @Configuration
+  @EnableWebSecurity
+  @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true, jsr250Enabled = true)
+  public class SecurityConfig {
+      // Конфигурация
+  }
+  ```
+   - `prePostEnabled = true`: Включает `@PreAuthorize`, `@PostAuthorize`, `@PreFilter`, `@PostFilter`.
+   - `securedEnabled = true`: Включает `@Secured`.
+   - `jsr250Enabled = true`: Включает `@RolesAllowed`.
 
-FilterComparator — здесь можно посмотреть список фильтров и их возможный порядок.
+#### 2.3. `@EnableGlobalMethodSecurity` (устаревшая)
+- **Описание**: Устаревшая аннотация, заменённая `@EnableMethodSecurity` в Spring Security 5.6+. Использовалась для активации методной безопасности.
+- **Назначение**: Аналогична `@EnableMethodSecurity`.
+- **Применение**:
+   - Использовалась в старых версиях Spring Security. Рекомендуется перейти на `@EnableMethodSecurity`.
 
-Основные сущности:
-AuthenticationManager — интерфейс, ответственнен за аутентификацию
+---
 
-ProviderManager — реализация AuthenticationManager, которая использует внутри использует AuthenticationProvider
+### Какие есть аннотации аннотации для аутентификации?
+Эти аннотации не так распространены, но используются для работы с текущим пользователем.
 
-AuthenticationProvider — интерфейс, отвественнен за аутентификаци конкретной реализации Authentication.
+#### 3.1. `@AuthenticationPrincipal`
+- **Описание**: Позволяет получить объект текущего пользователя (principal) из `SecurityContextHolder` непосредственно в параметрах метода контроллера.
+- **Назначение**: Упрощает доступ к данным аутентифицированного пользователя.
+- **Применение**:
+   - Используется в контроллерах для получения объекта `UserDetails` или кастомного principal.
+- **Пример**:
+  ```java
+  @RestController
+  public class UserController {
 
-SecurityContextHolder — хранит в себе аутентификацию обычно в ThreadLocal переменной.
+      @GetMapping("/profile")
+      public UserProfile getProfile(@AuthenticationPrincipal UserDetails userDetails) {
+          return userService.getProfile(userDetails.getUsername());
+      }
+  }
+  ```
+   - Если в JWT principal является кастомным объектом (например, `CustomUserDetails`), он будет передан в параметр метода.
 
-AuthenticationEntryPoint — модифицирует ответ, чтобы дать понять клиенту что необходима аутентификация (заголовки, редирект на страницу логина, т.п.)
+#### 3.2. `@CurrentSecurityContext`
+- **Описание**: Позволяет получить объект `SecurityContext` или его части (например, `Authentication`) в параметрах метода.
+- **Назначение**: Доступ к текущему контексту безопасности без явного обращения к `SecurityContextHolder`.
+- **Применение**:
+   - Полезна для получения полной информации об аутентификации.
+- **Пример**:
+  ```java
+  @RestController
+  public class SecurityController {
 
-AccessDecisionManager решает имеет ли Authentication доступ к какому-то ресурсу.
-
-AffirmativeBased — стратегия используемая AccessDecisionManager по умолчанию.
+      @GetMapping("/current-user")
+      public String getCurrentUser(@CurrentSecurityContext(expression = "authentication.name") String username) {
+          return "Current user: " + username;
+      }
+  }
+  ```
+   - Извлекает имя пользователя из объекта `Authentication`.
 
 --------------------------------------------------------------------------------------------------------------------
+
+### 1. **Принцип работы `@PreAuthorize`**
+`@PreAuthorize` используется для проверки прав доступа **до выполнения метода**. Если проверка не пройдена, метод не вызывается, и выбрасывается исключение `AccessDeniedException`.
+
+#### Как работает:
+1. **Аннотация на методе или классе**:
+   - Аннотация содержит выражение SpEL, которое определяет условие доступа.
+   - Например, `hasRole('ADMIN')` проверяет, есть ли у текущего пользователя роль `ADMIN`.
+
+2. **Проверка в `SecurityContext`**:
+   - Spring Security извлекает объект `Authentication` из `SecurityContextHolder`, который содержит данные текущего пользователя (имя, роли, права).
+   - Выражение SpEL оценивается на основе данных `Authentication`.
+
+3. **Результат проверки**:
+   - Если выражение возвращает `true`, метод выполняется.
+   - Если `false`, выбрасывается `AccessDeniedException`, и метод не вызывается.
+
+4. **Интеграция с цепочкой фильтров**:
+   - `@PreAuthorize` обрабатывается аспектом Spring Security (`MethodSecurityInterceptor`), который встроен в цепочку обработки запросов.
+   - Этот аспект перехватывает вызов метода и выполняет проверку до его исполнения.
+
+#### Пример:
+```java
+@Service
+public class AdminService {
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public String getAdminData() {
+        return "Sensitive admin data";
+    }
+
+    @PreAuthorize("hasRole('USER') and #username == authentication.name")
+    public String getUserData(String username) {
+        return "User data for " + username;
+    }
+}
+```
+
+- **Объяснение**:
+   - `hasRole('ADMIN')`: Доступ разрешён только пользователям с ролью `ROLE_ADMIN`.
+   - `#username == authentication.name`: Доступ разрешён, если переданный параметр `username` совпадает с именем текущего пользователя в `SecurityContext`.
+- Если проверка не пройдена, метод не выполняется, и клиент получает HTTP 403 (Forbidden).
+
+---
+
+### 2. **Принцип работы `@PostAuthorize`**
+`@PostAuthorize` используется для проверки прав доступа **после выполнения метода**, на основе результата, возвращённого методом. Если проверка не пройдена, выбрасывается `AccessDeniedException`, и результат не возвращается клиенту.
+
+#### Как работает:
+1. **Аннотация на методе или классе**:
+   - Содержит выражение SpEL, которое оценивается после выполнения метода.
+   - Выражение может использовать возвращённый объект (`returnObject`) для проверки.
+
+2. **Выполнение метода**:
+   - Метод выполняется полностью, и его результат сохраняется.
+
+3. **Проверка в `SecurityContext`**:
+   - Spring Security оценивает выражение SpEL, используя данные `Authentication` из `SecurityContextHolder` и `returnObject`.
+   - Если выражение возвращает `true`, результат передаётся клиенту.
+   - Если `false`, выбрасывается `AccessDeniedException`, и результат отклоняется.
+
+4. **Интеграция с аспектами**:
+   - Как и `@PreAuthorize`, `@PostAuthorize` обрабатывается `MethodSecurityInterceptor`, но проверка выполняется после вызова метода.
+
+#### Пример:
+```java
+@Service
+public class DataService {
+
+    @PostAuthorize("returnObject.owner == authentication.name")
+    public Data getData(Long id) {
+        Data data = dataRepository.findById(id).orElseThrow();
+        return data;
+    }
+}
+```
+
+- **Объяснение**:
+   - Метод `getData` возвращает объект `Data`, у которого есть поле `owner`.
+   - `@PostAuthorize` проверяет, совпадает ли `owner` возвращённого объекта с именем текущего пользователя (`authentication.name`).
+   - Если проверка не пройдена, клиент получит HTTP 403, даже если метод выполнился.
+
+---
+
+### 3. **Различия между `@PreAuthorize` и `@PostAuthorize`**
+| Характеристика            | `@PreAuthorize`                              | `@PostAuthorize`                             |
+|---------------------------|----------------------------------------------|---------------------------------------------|
+| **Когда выполняется проверка** | До выполнения метода                        | После выполнения метода                    |
+| **Доступ к данным**       | Параметры метода, `Authentication`           | Параметры метода, `Authentication`, `returnObject` |
+| **Производительность**    | Экономит ресурсы, если доступ запрещён       | Метод выполняется полностью, даже если доступ запрещён |
+| **Исключение**            | `AccessDeniedException` при неудачной проверке | `AccessDeniedException` при неудачной проверке |
+| **Типичный случай**       | Проверка ролей или параметров перед выполнением | Проверка прав на основе возвращённых данных |
+
+---
+
+### 4. **Когда использовать `@PreAuthorize`?**
+`@PreAuthorize` наиболее уместен, когда:
+- Проверка доступа основана на статических данных, таких как роли, права или входные параметры метода.
+- Вы хотите предотвратить выполнение метода, чтобы сэкономить ресурсы или избежать ненужной обработки.
+- Логика доступа проста и не зависит от результата выполнения метода.
+
+#### Примеры сценариев:
+1. **Ограничение по ролям**:
+   - Доступ к админ-панели только для пользователей с ролью `ADMIN`:
+     ```java
+     @PreAuthorize("hasRole('ADMIN')")
+     public List<User> getAllUsers() {
+         return userRepository.findAll();
+     }
+     ```
+
+2. **Проверка параметров**:
+   - Доступ к данным пользователя только для самого пользователя:
+     ```java
+     @PreAuthorize("#username == authentication.name")
+     public User getUserProfile(String username) {
+         return userRepository.findByUsername(username);
+     }
+     ```
+
+3. **Проверка прав**:
+   - Доступ к ресурсу на основе специфических прав:
+     ```java
+     @PreAuthorize("hasAuthority('READ_RESOURCE')")
+     public Resource getResource(Long id) {
+         return resourceRepository.findById(id);
+     }
+     ```
+
+**Преимущества**:
+- Экономит ресурсы, так как метод не выполняется при отсутствии прав.
+- Простота реализации для большинства случаев.
+
+**Недостатки**:
+- Не подходит, если доступ зависит от результата выполнения метода.
+
+---
+
+### 5. **Когда использовать `@PostAuthorize`?**
+`@PostAuthorize` наиболее уместен, когда:
+- Проверка доступа зависит от данных, возвращённых методом.
+- Вы хотите разрешить выполнение метода, но ограничить доступ к результату на основе его содержимого.
+- Логика доступа сложная и требует анализа результата выполнения.
+
+#### Примеры сценариев:
+1. **Проверка владельца данных**:
+   - Пользователь может получить данные только если он их владелец:
+     ```java
+     @PostAuthorize("returnObject.owner == authentication.name")
+     public Document getDocument(Long id) {
+         return documentRepository.findById(id).orElseThrow();
+     }
+     ```
+
+2. **Фильтрация результатов**:
+   - Доступ к списку данных, но только к тем, где пользователь указан как владелец:
+     ```java
+     @PostAuthorize("returnObject.every(d -> d.owner == authentication.name)")
+     public List<Document> getDocuments() {
+         return documentRepository.findAll();
+     }
+     ```
+
+3. **Контроль доступа на основе вычисляемых данных**:
+   - Проверка прав на основе сложной логики, связанной с результатом:
+     ```java
+     @PostAuthorize("returnObject.isPublic or returnObject.owner == authentication.name")
+     public Resource getResource(Long id) {
+         return resourceRepository.findById(id).orElseThrow();
+     }
+     ```
+
+**Преимущества**:
+- Позволяет выполнять сложные проверки, зависящие от результата метода.
+- Полезен для случаев, когда данные доступны только после выполнения логики.
+
+**Недостатки**:
+- Метод выполняется полностью, даже если доступ будет запрещён, что может быть неэффективно.
+- Сложнее в отладке, так как ошибка возникает после выполнения метода.
+
+---
+
+Что такое **Кодирование**?
+
+Кодирование — это процесс преобразования данных из одного формата в другой, чтобы сделать их совместимыми с определённой системой или протоколом. Это **обратимый** процесс, не предназначенный для обеспечения безопасности.
+
+- **Цель**: Упростить передачу, хранение или обработку данных.
+- **Характеристики**:
+   - Не использует секретный ключ.
+   - Легко обратимо без дополнительных данных.
+   - Примеры: Base64, URL-кодирование, UTF-8.
+- **Пример**:
+   - Base64 кодирует строку `"password"` в `"cGFzc3dvcmQ="`.
+   - Обратное декодирование восстанавливает исходную строку.
+  ```java
+  String original = "password";
+  String encoded = Base64.getEncoder().encodeToString(original.getBytes());
+  String decoded = new String(Base64.getDecoder().decode(encoded));
+  ```
+
+#### Применение:
+- Кодирование используется в JWT для представления заголовка и полезной нагрузки в Base64.
+- Не обеспечивает безопасности, так как любой может декодировать данные.
+
+---
+
+Что такое **Шифрование**?
+#### Определение:
+Шифрование — это процесс преобразования данных в нечитаемый вид с использованием ключа, чтобы защитить их от несанкционированного доступа. Это **обратимый** процесс, но только при наличии правильного ключа.
+
+- **Цель**: Обеспечить конфиденциальность данных.
+- **Характеристики**:
+   - Использует ключ (симметричный или асимметричный).
+   - Обратимость зависит от доступа к ключу.
+   - Примеры алгоритмов: AES (симметричное шифрование), RSA (асимметричное).
+- **Пример**:
+   - Симметричное шифрование с AES:
+  ```java
+  SecretKey key = KeyGenerator.getInstance("AES").generateKey();
+  Cipher cipher = Cipher.getInstance("AES");
+  cipher.init(Cipher.ENCRYPT_MODE, key);
+  byte[] encrypted = cipher.doFinal("password".getBytes());
+  // Обратное расшифрование с тем же ключом
+  cipher.init(Cipher.DECRYPT_MODE, key);
+  byte[] decrypted = cipher.doFinal(encrypted);
+  ```
+
+#### Применение:
+- Шифрование используется для защиты данных при передаче (например, HTTPS с TLS) или хранения (например, чувствительных данных в базе).
+- В JWT шифрование может применяться для защиты содержимого токена (например, JWE — JSON Web Encryption), но чаще используется подпись (JWS).
+
+---
+
+Что такое **Хеширование**?
+#### Определение:
+Хеширование — это процесс преобразования данных в строку фиксированной длины (хеш) с использованием односторонней функции. Это **необратимый** процесс, предназначенный для проверки целостности или подлинности данных.
+
+- **Цель**: Обеспечить целостность данных или безопасное хранение (например, паролей).
+- **Характеристики**:
+   - Необратимый процесс (нельзя восстановить исходные данные из хеша).
+   - Даже небольшое изменение входных данных даёт совершенно другой хеш.
+   - Использует алгоритмы, такие как MD5, SHA-256, BCrypt, Argon2.
+   - Часто добавляется "соль" (случайные данные) для защиты от атак с использованием радужных таблиц.
+- **Пример**:
+   - Хеширование пароля с BCrypt:
+  ```java
+  PasswordEncoder encoder = new BCryptPasswordEncoder();
+  String hashedPassword = encoder.encode("password");
+  // hashedPassword: $2a$10$... (уникальный хеш с солью)
+  boolean matches = encoder.matches("password", hashedPassword); // Проверка
+  ```
+
+#### Применение:
+- Хеширование используется для хранения паролей, проверки целостности данных или создания цифровых подписей (например, в JWT для проверки подписи).
+
+---
+
+### **Сравнение Кодирование / Шифрование / Хеширование**
+| Характеристика        | Кодирование                  | Шифрование                  | Хеширование                 |
+|-----------------------|------------------------------|-----------------------------|-----------------------------|
+| **Цель**              | Совместимость форматов       | Конфиденциальность          | Целостность, аутентификация |
+| **Обратимость**       | Обратимый                   | Обратимый (с ключом)        | Необратимый                 |
+| **Ключ**              | Не требуется                | Требуется                   | Не требуется (но может быть соль) |
+| **Примеры**           | Base64, URL-кодирование     | AES, RSA                    | BCrypt, SHA-256             |
+| **Безопасность**      | Нет                         | Высокая (с ключом)          | Высокая (для паролей, подписей) |
+
+---
+
+###  Почему хеширование наиболее актуально для паролей в Spring Security?
+**Хеширование** является наиболее актуальным при работе с паролями в Spring Security, и вот почему:
+
+#### Почему хеширование?
+1. **Необратимость**:
+   - Пароли не должны храниться в открытом виде или в обратимом формате, чтобы минимизировать риск утечки.
+   - Хеширование (например, с BCrypt) преобразует пароль в необратимый хеш, который нельзя восстановить даже при компрометации базы данных.
+
+2. **Безопасность с солью**:
+   - Современные алгоритмы хеширования (BCrypt, Argon2) автоматически добавляют уникальную "соль" для каждого пароля, что защищает от атак с использованием радужных таблиц.
+   - Это делает невозможным использование предвычисленных хешей для массового взлома.
+
+3. **Проверка паролей**:
+   - Spring Security использует `PasswordEncoder` для хеширования паролей при их сохранении и проверки при аутентификации.
+   - Пример:
+     ```java
+     PasswordEncoder encoder = new BCryptPasswordEncoder();
+     String hashedPassword = encoder.encode("password"); // Хеширование
+     boolean isValid = encoder.matches("password", hashedPassword); // Проверка
+     ```
+
+4. **Интеграция с Spring Security**:
+   - Spring Security предоставляет встроенный `PasswordEncoder` (например, `BCryptPasswordEncoder`), который используется в `DaoAuthenticationProvider` для проверки паролей, загруженных через `UserDetailsService`.
+
+
+5. **Контекст JWT**:
+   - При выдаче JWT (например, через эндпоинт `/login`) Spring Security использует хеширование для проверки пароля пользователя.
+   - После успешной аутентификации генерируется JWT, который подписывается (а не хешируется) для обеспечения целостности.
+
+---------------------------
+
+### Что делает метод конфигурации `hasAuthority()`
+- `hasAuthority(String authority)` проверяет, есть ли у текущего пользователя конкретное право (permission), указанное в виде строки (`GrantedAuthority`).
+- Право — это произвольная строка, которая может представлять конкретное разрешение, например, `READ_RESOURCE`, `WRITE_DOCUMENT`, `DELETE_USER`.
+- Используется в конфигурации `HttpSecurity` или в аннотациях `@PreAuthorize`/`@PostAuthorize`.
+
+#### Когда использовать:
+- Когда доступ к ресурсу определяется **специфическими правами**, а не ролями.
+- Когда требуется **детализированный контроль доступа**, где права более гранулярные, чем роли.
+- Подходит для приложений, где права явно определены и не привязаны к ролям (например, в системах с RBAC — Role-Based Access Control, или ABAC — Attribute-Based Access Control).
+
+#### Пример сценария:
+- У вас есть API для управления документами, где доступ к эндпоинтам зависит от конкретных прав:
+   - `GET /documents` требует право `READ_DOCUMENT`.
+   - `POST /documents` требует право `WRITE_DOCUMENT`.
+
+#### Пример кода:
+1. **В конфигурации `HttpSecurity`**:
+   ```java
+   @Configuration
+   @EnableWebSecurity
+   public class SecurityConfig {
+
+       @Bean
+       public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+           http
+               .authorizeHttpRequests()
+                   .requestMatchers("/documents").hasAuthority("READ_DOCUMENT")
+                   .requestMatchers("/documents/create").hasAuthority("WRITE_DOCUMENT")
+                   .anyRequest().authenticated()
+               .and()
+               .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+           return http.build();
+       }
+   }
+   ```
+
+2. **С аннотацией `@PreAuthorize`**:
+   ```java
+   @RestController
+   @RequestMapping("/documents")
+   public class DocumentController {
+
+       @PreAuthorize("hasAuthority('READ_DOCUMENT')")
+       @GetMapping
+       public List<Document> getDocuments() {
+           return documentService.findAll();
+       }
+
+       @PreAuthorize("hasAuthority('WRITE_DOCUMENT')")
+       @PostMapping("/create")
+       public Document createDocument(@RequestBody Document document) {
+           return documentService.save(document);
+       }
+   }
+   ```
+
+---
+
+### Что делает метод `hasRole()`?
+
+- `hasRole(String role)` проверяет, есть ли у текущего пользователя конкретная роль, автоматически добавляя префикс `ROLE_` к указанной строке (например, `hasRole('USER')` проверяет наличие `ROLE_USER`).
+- Роли — это более высокоуровневая абстракция, чем права, и обычно представляют группу разрешений.
+- Используется в конфигурации `HttpSecurity` или в аннотациях `@PreAuthorize`/`@PostAuthorize`.
+
+#### Когда использовать:
+- Когда доступ к ресурсу определяется **ролями пользователей**, а не отдельными правами.
+- Подходит для систем с **простой моделью ролей**, где роли (например, `ADMIN`, `USER`) чётко определяют доступ.
+- Идеально для приложений с RBAC, где роли являются основным механизмом авторизации.
+
+#### Пример сценария:
+- У вас есть API, где:
+   - Эндпоинт `/admin` доступен только администраторам (`ROLE_ADMIN`).
+   - Эндпоинт `/user` доступен только пользователям (`ROLE_USER`).
+
+#### Пример кода:
+1. **В конфигурации `HttpSecurity`**:
+   ```java
+   @Configuration
+   @EnableWebSecurity
+   public class SecurityConfig {
+
+       @Bean
+       public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+           http
+               .authorizeHttpRequests()
+                   .requestMatchers("/admin/**").hasRole("ADMIN")
+                   .requestMatchers("/user/**").hasRole("USER")
+                   .anyRequest().authenticated()
+               .and()
+               .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+           return http.build();
+       }
+   }
+   ```
+
+2. **С аннотацией `@PreAuthorize`**:
+   ```java
+   @RestController
+   public class UserController {
+
+       @PreAuthorize("hasRole('ADMIN')")
+       @GetMapping("/admin")
+       public String adminEndpoint() {
+           return "Admin access granted";
+       }
+
+       @PreAuthorize("hasRole('USER')")
+       @GetMapping("/user")
+       public String userEndpoint() {
+           return "User access granted";
+       }
+   }
+   ```
+
+---
+
+### 3. **Метод `access()`**
+
+- `access(String expression)` позволяет использовать выражение SpEL (Spring Expression Language) для определения сложных правил авторизации.
+- Поддерживает комбинацию условий, включая `hasRole()`, `hasAuthority()`, проверки параметров, пользовательских атрибутов и других выражений.
+- Используется только в конфигурации `HttpSecurity` (не в аннотациях).
+
+#### Когда использовать:
+- Когда требуется **сложная логика авторизации**, которая выходит за рамки простых проверок ролей или прав.
+- Подходит для случаев, когда доступ зависит от:
+   - Комбинации ролей и прав.
+   - Атрибутов запроса (например, IP-адреса, параметров).
+   - Кастомной логики, реализованной через SpEL.
+- Используется, когда нужно централизованно управлять доступом в конфигурации `HttpSecurity`.
+
+#### Пример сценария:
+- Доступ к эндпоинту `/sensitive` разрешен только пользователям с ролью `ADMIN` или с правом `ACCESS_SENSITIVE` и при запросе с определённого IP-адреса.
+
+#### Пример кода:
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests()
+                .requestMatchers("/sensitive")
+                .access(new SpelExpressionAuthorizationDecision(
+                    "hasRole('ADMIN') or (hasAuthority('ACCESS_SENSITIVE') and #request.remoteAddr == '192.168.1.100')"))
+                .anyRequest().authenticated()
+            .and()
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+}
+```
+
+- **Объяснение**:
+   - `hasRole('ADMIN')`: Проверяет роль `ROLE_ADMIN`.
+   - `hasAuthority('ACCESS_SENSITIVE')`: Проверяет право `ACCESS_SENSITIVE`.
+   - `#request.remoteAddr`: Проверяет IP-адрес клиента.
+   - Доступ предоставляется, если выполнено хотя бы одно из условий (роль `ADMIN` **или** право `ACCESS_SENSITIVE` с нужным IP).
+
+#### Альтернатива с аннотацией `@PreAuthorize`:
+Для аналогичной логики на уровне методов используется `@PreAuthorize` с SpEL:
+
+```java
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('ACCESS_SENSITIVE')")
+@GetMapping("/sensitive")
+public String sensitiveEndpoint() {
+    return "Sensitive data";
+}
+```
+
+#### Преимущества:
+- Максимальная гибкость благодаря SpEL.
+- Позволяет комбинировать роли, права и другие условия.
+- Подходит для сложных сценариев авторизации.
+
+#### Недостатки:
+- Более сложный синтаксис, требующий знания SpEL.
+- Меньшая читаемость по сравнению с `hasRole()` или `hasAuthority()`.
+- Требует осторожности, чтобы избежать ошибок в выражениях.
+
+---
+
+### **Сравнение `hasRole()`, `hasAuthority()` и `access()`**
+| Метод                | Когда использовать                                                                 | Пример сценария                                   |
+|----------------------|-----------------------------------------------------------------------------------|--------------------------------------------------|
+| **hasAuthority()**   | Для детализированного контроля доступа на основе специфических прав.               | Доступ к эндпоинту зависит от прав, таких как `READ_DOCUMENT`. |
+| **hasRole()**        | Для простых систем с ролями, где роли определяют доступ.                           | Доступ к `/admin` только для `ROLE_ADMIN`.        |
+| **access()**         | Для сложных правил, комбинирующих роли, права, параметры запроса или кастомную логику. | Доступ для `ROLE_ADMIN` или с определённого IP.   |
+
+#### Рекомендации по выбору:
+1. **Используйте `hasAuthority()`**, если:
+   - У вас есть чётко определённые права (permissions), не привязанные к ролям.
+   - Приложение требует гранулярного контроля доступа (например, отдельные права для чтения, записи, удаления).
+   - Пример: Системы с множеством операций, где роли недостаточно выразительны.
+
+2. **Используйте `hasRole()`**, если:
+   - Ваша система использует простую модель ролей (RBAC).
+   - Роли (например, `ADMIN`, `USER`) достаточно для определения доступа.
+   - Вы хотите простую и читаемую конфигурацию.
+   - Пример: Простые приложения, где доступ делится на админский и пользовательский.
+
+3. **Используйте `access()`**, если:
+   - Требуется комбинированная логика (например, роли + права + параметры запроса).
+   - Нужна кастомная проверка, зависящая от атрибутов запроса, пользовательских данных или сложных условий.
+   - Вы хотите централизовать сложные правила в конфигурации `HttpSecurity`.
+   - Пример: Сложные системы с ABAC или условиями, зависящими от контекста (IP, время, пользовательские атрибуты).
+
+---
+### 1. **Как работают ограничения в `@PreAuthorize`**?
+Аннотация `@PreAuthorize` используется на уровне методов или классов для проверки прав доступа перед выполнением метода. Она является частью механизма **методной безопасности** (method-level security) в Spring Security.
+
+#### Принцип работы:
+1. **Перехват вызова метода**:
+   - `@PreAuthorize` обрабатывается аспектом `MethodSecurityInterceptor`, который включается аннотацией `@EnableMethodSecurity`.
+   - Перед вызовом метода Spring Security оценивает выражение SpEL (Spring Expression Language), указанное в `@PreAuthorize`, используя данные из `SecurityContextHolder` (например, роли, права, имя пользователя).
+
+2. **Проверка доступа**:
+   - Если выражение возвращает `true`, метод выполняется.
+   - Если `false`, выбрасывается `AccessDeniedException`, и метод не вызывается.
+
+3. **Место в цепочке обработки**:
+   - Проверка `@PreAuthorize` происходит **после** прохождения запроса через цепочку фильтров (`SecurityFilterChain`), когда запрос уже достиг контроллера и вызывается целевой метод сервиса или репозитория.
+   - Это означает, что весь HTTP-запрос, включая фильтры аутентификации (например, `JwtAuthenticationFilter`), уже обработан.
+
+#### Пример:
+```java
+@Service
+public class DocumentService {
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Document> getAllDocuments() {
+        return documentRepository.findAll();
+    }
+
+    @PreAuthorize("hasAuthority('READ_DOCUMENT') and #id == authentication.principal.id")
+    public Document getDocument(Long id) {
+        return documentRepository.findById(id).orElseThrow();
+    }
+}
+```
+
+#### Производительность:
+- **Плюсы**:
+   - Проверка выполняется только для конкретного метода, что минимизирует накладные расходы, если запрос не доходит до этого метода.
+   - SpEL позволяет гибко определять правила, включая доступ к параметрам метода и данным `Authentication`.
+- **Минусы**:
+   - Проверка происходит **поздно** в цепочке обработки (на уровне вызова метода), что означает, что запрос уже прошёл через фильтры, контроллер и, возможно, другие слои приложения.
+   - Вычисление сложных SpEL-выражений (например, с доступом к параметрам или кастомным бинам) может быть медленнее, чем простые проверки ролей или прав.
+   - Аспектная обработка (`MethodSecurityInterceptor`) добавляет небольшие накладные расходы из-за использования AOP (Aspect-Oriented Programming).
+
+---
+
+### 2. **Как работают ограничения в `SecurityFilterChain`**
+Ограничения авторизации в `SecurityFilterChain` задаются через конфигурацию `HttpSecurity` в методе `authorizeHttpRequests()`. Они применяются на уровне URL-шаблонов и выполняются в цепочке фильтров Spring Security.
+
+#### Принцип работы:
+1. **Конфигурация правил доступа**:
+   - Правила задаются для URL-шаблонов с использованием методов, таких как `hasRole()`, `hasAuthority()`, или `access()` с SpEL.
+   - Например, `.requestMatchers("/admin/**").hasRole("ADMIN")` ограничивает доступ к эндпоинтам `/admin/**` только для пользователей с ролью `ROLE_ADMIN`.
+
+2. **Проверка в фильтре**:
+   - Проверка доступа выполняется фильтром `FilterSecurityInterceptor` (или его аналогом), который является одним из последних в цепочке фильтров Spring Security.
+   - `FilterSecurityInterceptor` оценивает правила доступа на основе данных из `SecurityContextHolder` и текущего запроса (URL, метод HTTP).
+
+3. **Место в цепочке обработки**:
+   - Проверка происходит **раньше**, чем вызов контроллера, так как `FilterSecurityInterceptor` находится в цепочке фильтров, до обработки запроса диспетчером сервлетов (`DispatcherServlet`).
+   - Если доступ запрещён, запрос отклоняется с HTTP 403 (или 401, если пользователь не аутентифицирован), и дальнейшая обработка (контроллер, сервис) не выполняется.
+
+#### Пример:
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf().disable()
+            .authorizeHttpRequests()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/documents/**").hasAuthority("READ_DOCUMENT")
+                .requestMatchers("/public/**").permitAll()
+                .anyRequest().authenticated()
+            .and()
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+}
+```
+
+#### Производительность:
+- **Плюсы**:
+   - Проверка выполняется **рано** в цепочке обработки, до вызова контроллера, что позволяет отклонить запрос без лишних вычислений (например, десериализации тела запроса или вызова бизнес-логики).
+   - Простые проверки (`hasRole()`, `hasAuthority()`) быстрее, чем сложные SpEL-выражения, так как не требуют вычисления выражений.
+   - Централизованная конфигурация упрощает управление правилами для множества эндпоинтов.
+- **Минусы**:
+   - Менее гибкий подход, так как правила привязаны к URL-шаблонам, а не к конкретным методам или параметрам.
+   - SpEL в методе `access()` может быть медленнее, если используются сложные выражения.
+   - Не позволяет проверять параметры метода или возвращаемые данные, в отличие от `@PreAuthorize`.
+
+---
+
+### 3. **Сравнение производительности**
+Для определения, что быстрее — `@PreAuthorize` или `SecurityFilterChain`, рассмотрим ключевые факторы:
+
+#### 3.1. **Место выполнения проверки**
+- **SecurityFilterChain**:
+   - Проверка происходит в `FilterSecurityInterceptor`, до вызова контроллера.
+   - Если доступ запрещён, запрос отклоняется на ранней стадии, что экономит ресурсы на обработку контроллера, десериализацию и вызов бизнес-логики.
+- **@PreAuthorize**:
+   - Проверка происходит в `MethodSecurityInterceptor`, после вызова контроллера и до вызова метода сервиса.
+   - Запрос уже прошёл через фильтры, контроллер и, возможно, другие слои, что увеличивает затраты ресурсов, если доступ в итоге запрещён.
+
+**Вывод**: `SecurityFilterChain` быстрее, так как отклоняет запрос раньше.
+
+------------------------------------
+
+#### Какие ограничения быстрее отработают в аннатациях `@PreAuthorize` или в конфигурации `SecurityFilterChain`?
+- **SecurityFilterChain**:
+   - Простые методы, такие как `hasRole()` или `hasAuthority()`, выполняются быстрее, так как проверяют наличие строки в `GrantedAuthority`.
+   - SpEL в `access()` может замедлить проверку, если выражение сложное (например, доступ к `request` или кастомным бинам).
+- **@PreAuthorize**:
+   - Всегда использует SpEL, что добавляет накладные расходы на парсинг и вычисление выражений.
+   - Простые выражения (например, `hasRole('ADMIN')`) сравнимы по скорости с `hasRole()` в `SecurityFilterChain`.
+   - Сложные выражения (например, с доступом к параметрам метода или вызовом бинов) медленнее.
+
+**Вывод**: Для простых проверок (`hasRole()`, `hasAuthority()`) `SecurityFilterChain` немного быстрее. Для сложных SpEL-выражений разница минимальна, но `@PreAuthorize` может быть медленнее из-за AOP.
+
+#### 3.3. **Накладные расходы**
+- **SecurityFilterChain**:
+   - Работает в рамках фильтров, которые оптимизированы для обработки HTTP-запросов.
+   - Не использует AOP, что снижает накладные расходы.
+- **@PreAuthorize**:
+   - Использует AOP через `MethodSecurityInterceptor`, что добавляет небольшую задержку из-за перехвата вызова метода.
+   - Накладные расходы AOP минимальны, но заметны при высоконагруженных системах.
+
+**Вывод**: `SecurityFilterChain` имеет меньшие накладные расходы.
+
+------------------------------------
+
+#### Какие ограничения быстрSpring Expression Language (SpEL) — это мощный язык выражений, встроенный в Spring Framework, который используется в Spring Security для декларативного определения правил авторизации и фильтрации данных. В контексте Spring Security SpEL играет ключевую роль в аннотациях методной безопасности (`@PreAuthorize`, `@PostAuthorize`, `@PreFilter`, `@PostFilter`) и конфигурации `SecurityFilterChain` (через метод `access()`). Я подробно объясню, как SpEL работает в Spring Security, его внутренние механизмы, синтаксис, возможности, производительность и применение в контексте JWT.
+
+SpEL — это язык выражений, позволяющий динамически вычислять условия на основе контекста выполнения. В Spring Security он используется для:
+- Проверки прав доступа (например, ролей, прав, пользовательских атрибутов).
+- Фильтрации данных (входных или возвращаемых коллекций).
+- Доступа к данным текущего пользователя (`Authentication`), параметрам метода, возвращаемым объектам и кастомным бинам.
+
+SpEL-выражения пишутся в виде строк и оцениваются во время выполнения с использованием контекста, предоставляемого Spring Security.
+
+
+SpEL используется в Spring Security через следующие механизмы:
+
+#### **Аннотации методной безопасности**
+- Аннотации `@PreAuthorize`, `@PostAuthorize`, `@PreFilter` и `@PostFilter` содержат SpEL-выражения, которые определяют правила доступа или фильтрации.
+
+#### 2.2. **Конфигурация `SecurityFilterChain`**
+- Метод `access(String expression)` в `HttpSecurity` позволяет задавать SpEL-выражения для проверки доступа на уровне URL.
+
+#### 2.3. **Внутренний обработчик**
+- SpEL-выражения обрабатываются компонентом `MethodSecurityExpressionHandler` (по умолчанию `DefaultMethodSecurityExpressionHandler`).
+- Этот обработчик предоставляет контекст для оценки выражений, включая:
+   - Объект `Authentication` из `SecurityContextHolder`.
+   - Параметры метода (для `@PreAuthorize`, `@PreFilter`).
+   - Возвращаемый объект (для `@PostAuthorize`, `@PostFilter`).
+   - Кастомные бины и другие данные.
+
+---
+
+### Механизм работы SpEL в Spring Security?
+SpEL-выражения в Spring Security оцениваются следующим образом:
+
+#### 1. **Контекст выполнения**
+- Spring Security создаёт объект `SecurityExpressionRoot` (или его подкласс, например, `MethodSecurityExpressionRoot`), который предоставляет корневой контекст для SpEL.
+- Этот объект содержит:
+   - `authentication`: Объект `Authentication` (имя пользователя, роли, права, claims в JWT).
+   - Методы для проверки доступа, такие как `hasRole()`, `hasAuthority()`, `permitAll()`, `denyAll()`.
+   - Доступ к параметрам метода, возвращаемому объекту и HTTP-запросу (в зависимости от контекста).
+
+#### 2. **Оценка выражения**
+- SpEL-выражение парсится и вычисляется с использованием `SpelExpressionParser`.
+- Контекст включает:
+   - Переменные: Например, `#paramName` для параметров метода или `returnObject` для возвращённого результата.
+   - Методы: Стандартные методы SpEL (например, `matches`, `toUpperCase`) и методы `SecurityExpressionRoot` (например, `hasRole`).
+   - Бины: Доступ к бинам через `@beanName`.
+
+#### 3. **Результат**
+- Выражение возвращает булево значение (`true` или `false`) для проверки доступа или фильтрации.
+- Для `@PreFilter` и `@PostFilter` выражение применяется к каждому элементу коллекции через переменную `filterObject`.
+
+#### Пример внутреннего процесса:
+Для `@PreAuthorize("hasRole('ADMIN')")`:
+1. `MethodSecurityInterceptor` перехватывает вызов метода через AOP.
+2. `DefaultMethodSecurityExpressionHandler` создаёт `MethodSecurityExpressionRoot` с текущим `Authentication`.
+3. SpEL-выражение `hasRole('ADMIN')` вызывает метод `hasRole` на `SecurityExpressionRoot`, который проверяет наличие `ROLE_ADMIN` в `authentication.getAuthorities()`.
+4. Если результат `true`, метод выполняется; если `false`, выбрасывается `AccessDeniedException`.
+
+---
+
+### 1. **Что такое `MethodSecurityInterceptor`?**
+`MethodSecurityInterceptor` — это реализация интерфейса `MethodInterceptor` из Spring AOP, которая перехватывает вызовы методов, помеченных аннотациями методной безопасности, и выполняет проверки доступа. Он активируется при включении методной безопасности с помощью аннотации `@EnableMethodSecurity` (или устаревшей `@EnableGlobalMethodSecurity`).
+
+#### Основные функции:
+- **Проверка авторизации**: Оценивает правила доступа (например, SpEL-выражения или списки ролей) перед или после выполнения метода.
+- **Фильтрация данных**: Применяет фильтрацию входных или возвращаемых коллекций (для `@PreFilter` и `@PostFilter`).
+- **Обработка исключений**: Выбрасывает `AccessDeniedException`, если доступ запрещён, или `AuthenticationException`, если пользователь не аутентифицирован.
+
+---
+
+### **Как включается `MethodSecurityInterceptor`?**
+Для активации `MethodSecurityInterceptor` требуется:
+
+1. **Аннотация `@EnableMethodSecurity`**:
+   - Включает методную безопасность и регистрирует необходимые компоненты.
+   - Пример:
+     ```java
+     @Configuration
+     @EnableWebSecurity
+     @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true, jsr250Enabled = true)
+     public class SecurityConfig {
+         // Конфигурация
+     }
+     ```
+      - `prePostEnabled = true`: Поддержка `@PreAuthorize`, `@PostAuthorize`, `@PreFilter`, `@PostFilter`.
+      - `securedEnabled = true`: Поддержка `@Secured`.
+      - `jsr250Enabled = true`: Поддержка `@RolesAllowed`.
+
+2. **AOP-прокси**:
+   - Spring создаёт прокси для бинов, содержащих аннотации методной безопасности, используя Spring AOP (через CGLIB или JDK-прокси).
+   - `MethodSecurityInterceptor` перехватывает вызовы методов этих бинов.
+
+3. **Контекст `SecurityContextHolder`**:
+   - `MethodSecurityInterceptor` использует данные из `SecurityContextHolder` (объект `Authentication`), чтобы проверить права пользователя.
+
+---
+
+### **Архитектура и внутренние компоненты MethodSecurityInterceptor**
+`MethodSecurityInterceptor` взаимодействует с несколькими компонентами Spring Security для выполнения своих задач:
+
+#### 3.1. **Основные компоненты**
+- **SecurityMetadataSource**:
+   - Извлекает метаданные безопасности для метода, такие как аннотации (`@PreAuthorize`, `@Secured`) и их выражения.
+   - Реализация: `AnnotationSecurityMetadataSource` для обработки аннотаций.
+
+- **AccessDecisionManager**:
+   - Принимает решение о предоставлении или запрете доступа на основе метаданных и текущего `Authentication`.
+   - Реализация: `AffirmativeBased` (доступ предоставляется, если хотя бы один `AccessDecisionVoter` голосует за доступ).
+
+- **MethodSecurityExpressionHandler**:
+   - Обрабатывает SpEL-выражения, предоставляя контекст для их оценки.
+   - Реализация: `DefaultMethodSecurityExpressionHandler`, которая создаёт `SecurityExpressionRoot` для доступа к `Authentication`, параметрам метода и другим данным.
+
+- **PreInvocationAuthorizationAdvice**:
+   - Выполняет проверки перед вызовом метода (для `@PreAuthorize` и `@PreFilter`).
+   - Реализация: `ExpressionBasedPreInvocationAdvice` для SpEL-выражений.
+
+- **PostInvocationAuthorizationAdvice**:
+   - Выполняет проверки после вызова метода (для `@PostAuthorize` и `@PostFilter`).
+   - Реализация: `ExpressionBasedPostInvocationAdvice` для SpEL-выражений.
+
+#### 3.2. **Классы и их роли**
+- `AbstractSecurityInterceptor`: Базовый класс, от которого наследуется `MethodSecurityInterceptor`. Определяет общую логику проверки доступа.
+- `SecurityExpressionRoot`: Корневой объект для SpEL, предоставляющий методы (`hasRole`, `hasAuthority`) и свойства (`authentication`, `principal`).
+- `MethodSecurityExpressionRoot`: Расширение `SecurityExpressionRoot` для доступа к параметрам метода (`#paramName`), возвращаемому объекту (`returnObject`) и коллекциям (`filterObject`).
+
+---
+
+### **Процесс работы `MethodSecurityInterceptor`**
+`MethodSecurityInterceptor` выполняет следующие шаги при вызове метода, помеченного аннотацией безопасности:
+
+#### 4.1. **Перехват вызова метода**
+- Когда вызывается метод, AOP-прокси передаёт управление `MethodSecurityInterceptor`.
+- Перехватчик получает информацию о методе через `MethodInvocation`, включая имя метода, параметры и целевой объект.
+
+#### 4.2. **Извлечение метаданных безопасности**
+- `SecurityMetadataSource` (обычно `AnnotationSecurityMetadataSource`) проверяет наличие аннотаций на методе или классе.
+- Для каждой аннотации извлекаются атрибуты:
+   - `@PreAuthorize`: SpEL-выражение (например, `hasRole('ADMIN')`).
+   - `@Secured`: Список ролей (например, `["ROLE_ADMIN"]`).
+   - `@PreFilter`: SpEL-выражение для фильтрации входных данных.
+- Метаданные представляются как объект `ConfigAttribute` (например, `PreInvocationAttribute` или `PostInvocationAttribute`).
+
+#### 4.3. **Проверка перед вызовом метода**
+- Если метод помечен `@PreAuthorize` или `@PreFilter`:
+   - `PreInvocationAuthorizationAdvice` оценивает SpEL-выражение с помощью `MethodSecurityExpressionHandler`.
+   - Контекст включает:
+      - `authentication`: Объект `Authentication` из `SecurityContextHolder`.
+      - `#paramName`: Параметры метода.
+      - `filterObject`: Элементы коллекции для `@PreFilter`.
+   - Если выражение `@PreAuthorize` возвращает `false`, выбрасывается `AccessDeniedException`.
+   - Для `@PreFilter` фильтруются входные коллекции, и метод вызывается с обновлёнными данными.
+
+#### 4.4. **Вызов метода**
+- Если проверки перед вызовом пройдены, `MethodSecurityInterceptor` вызывает целевой метод через `MethodInvocation.proceed()`.
+
+#### 4.5. **Проверка после вызова метода**
+- Если метод помечен `@PostAuthorize` или `@PostFilter`:
+   - `PostInvocationAuthorizationAdvice` оценивает SpEL-выражение после выполнения метода.
+   - Контекст включает:
+      - `returnObject`: Возвращённый результат.
+      - `authentication`: Объект `Authentication`.
+      - `filterObject`: Элементы возвращённой коллекции для `@PostFilter`.
+   - Если выражение `@PostAuthorize` возвращает `false`, выбрасывается `AccessDeniedException`, и результат отклоняется.
+   - Для `@PostFilter` фильтруется возвращённая коллекция.
+
+#### 4.6. **Принятие решения**
+- `AccessDecisionManager` объединяет результаты проверок (если их несколько) и принимает окончательное решение.
+- По умолчанию используется `AffirmativeBased`, где доступ предоставляется, если хотя бы одно правило разрешает.
+
+#### 4.7. **Обработка исключений**
+- Если доступ запрещён, выбрасывается `AccessDeniedException`.
+- Если пользователь не аутентифицирован, выбрасывается `AuthenticationException`.
+- Исключения перехватываются Spring Security и преобразуются в HTTP 403 или 401 в веб-приложениях.
