@@ -52,34 +52,6 @@
 
 Сериализация — процесс преобразования объекта в поток байтов. Десериализация — восстановление объекта из байтов. В Java используется интерфейс `Serializable` и классы `ObjectOutputStream`/`ObjectInputStream`.
 
-**Пример**:
-```java
-import java.io.*;
-
-class Person implements Serializable {
-    private String name;
-    private int age;
-
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-}
-
-public class SerializationExample {
-    public static void main(String[] args) throws Exception {
-        Person person = new Person("Alice", 30);
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("person.ser"))) {
-            out.writeObject(person);
-        }
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("person.ser"))) {
-            Person deserialized = (Person) in.readObject();
-            System.out.println(deserialized.name + ", " + deserialized.age);
-        }
-    }
-}
-```
-
 [Назад к оглавлению](#оглавление)
 
 ---
@@ -153,24 +125,6 @@ class User implements Serializable {
 
 Методы `writeObject` и `readObject` позволяют управлять сериализацией.
 
-**Пример**:
-```java
-class CustomPerson implements Serializable {
-    private String name;
-    private transient int age;
-
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        out.defaultWriteObject();
-        out.writeInt(age + 1);
-    }
-
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        age = in.readInt() - 1;
-    }
-}
-```
-
 [Назад к оглавлению](#оглавление)
 
 ---
@@ -178,28 +132,6 @@ class CustomPerson implements Serializable {
 ### 7. Что такое `Externalizable` и как он отличается от `Serializable`?
 
 `Externalizable` требует явной реализации `writeExternal` и `readExternal`.
-
-**Пример**:
-```java
-class ExternalPerson implements Externalizable {
-    private String name;
-    private int age;
-
-    public ExternalPerson() {}
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(name);
-        out.writeInt(age);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException {
-        name = in.readUTF();
-        age = in.readInt();
-    }
-}
-```
 
 **Отличия**:
 - Полный контроль, но больше кода.
@@ -309,29 +241,6 @@ in.setObjectInputFilter(filter);
 
 [Назад к оглавлению](#оглавление)
 
----
-
-### 14. Как работают `readResolve` и `writeReplace`?
-
-- `writeReplace`: Заменяет объект перед сериализацией.
-- `readResolve`: Заменяет объект после десериализации.
-
-**Пример (синглтон)**:
-```java
-class Singleton implements Serializable {
-    private static final Singleton INSTANCE = new Singleton();
-
-    private Object writeReplace() {
-        return INSTANCE;
-    }
-
-    private Object readResolve() {
-        return INSTANCE;
-    }
-}
-```
-
-[Назад к оглавлению](#оглавление)
 
 ---
 
@@ -619,72 +528,3 @@ ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
 [Назад к оглавлению](#оглавление)
 
----
-
-### 35. Как Jackson интегрируется с фреймворками, такими как Spring?
-
-Spring Boot использует Jackson по умолчанию. Настраивается через `application.properties`.
-
-**Пример**:
-```properties
-spring.jackson.serialization.indent-output=true
-```
-
-[Назад к оглавлению](#оглавление)
-
----
-
-### 36. Что такое `jackson-jr` и когда его использовать?
-
-`jackson-jr` — лёгкая библиотека для простых задач (~300 КБ).
-
-**Пример**:
-```java
-Person person = JSON.std.beanFrom(Person.class, "{\"name\":\"Alice\",\"age\":30}");
-```
-
-**Когда использовать**: Для Android или минималистичных приложений.
-
-[Назад к оглавлению](#оглавление)
-
----
-
-### 37. Как Jackson обрабатывает обратную совместимость?
-
-Совместимость между минорными версиями. Проверяйте deprecated-методы при обновлении.
-
-[Назад к оглавлению](#оглавление)
-
----
-
-### 38. Как отлаживать проблемы с Jackson?
-
-- Логирование на уровне `DEBUG`.
-- Проверяйте `UnrecognizedPropertyException`.
-- Используйте `writeValueAsString` для отладки.
-
-[Назад к оглавлению](#оглавление)
-
----
-
-### 39. Как Jackson сравнивается с другими библиотеками, такими как Gson?
-
-| Библиотека | Преимущества                     | Недостатки                       |
-|------------|----------------------------------|----------------------------------|
-| **Jackson**| Быстрее, потоковый API, модули   | Сложнее для простых задач        |
-| **Gson**   | Проще, лёгкая настройка          | Медленнее, только JSON           |
-
-**Нюанс**: Jackson — стандарт в Spring Boot.
-
-[Назад к оглавлению](#оглавление)
-
----
-
-### 40. Какие уязвимости и ограничения у Jackson?
-
-- **Уязвимости**: Исправлены в новых версиях (например, CVE-2017-7525).
-- **Ограничения**: Рефлексия замедляет работу, высокое потребление памяти для больших JSON.
-
-**Решения**: Используйте потоковый API или Afterburner.
-
-[Назад к оглавлению](#оглавление)
