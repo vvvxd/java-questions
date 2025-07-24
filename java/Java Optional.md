@@ -1,36 +1,10 @@
-## Оглавление
 
-1. [Цель класса Optional](#1-цель-класса-optional)
-2. [Как создать Optional?](#2-как-создать-optional)
-    - [Пустой Optional](#21-пустой-optional)
-    - [Optional с помощью of()](#22-optional-с-помощью-of)
-    - [Optional с помощью ofNullable()](#23-optional-с-помощью-ofnullable)
-3. [Как проверить наличие значения в Optional?](#3-как-проверить-наличие-значения-в-optional)
-    - [Метод isPresent()](#31-метод-ispresent)
-    - [Метод isEmpty()](#32-метод-isempty)
-4. [Что делает ifPresent()?](#4-что-делает-ifpresent)
-5. [Что делает ifPresentOrElse()?](#5-что-делает-ifpresentorelse)
-6. [Что делает orElse()?](#6-что-делает-orelse)
-7. [Что делает orElseGet()?](#7-что-делает-orelseget)
-8. [Разница между orElse() и orElseGet()](#8-разница-между-orelse-и-orelseget)
-9. [Исключения с помощью orElseThrow()](#9-исключения-с-помощью-orselsethrow)
-10. [Возвращение значения с помощью get()](#10-возвращение-значения-с-помощью-get)
-11. [Как работает метод filter() для Optional?](#11-как-работает-метод-filter-для-optional)
-12. [Как работает метод map() для Optional?](#12-как-работает-метод-map-для-optional)
-13. [Как работает метод flatMap() для Optional?](#13-как-работает-метод-flatmap-для-optional)
-14. [Метод or()](#14-метод-or)
-15. [Комбинирование методов в Optional](#15-комбинирование-методов-в-optional)
-16. [Когда стоит использовать Optional?](#16-когда-стоит-использовать-optional)
-17. [Как НЕ стоит использовать Optional?](#17-как-не-стоит-использовать-optional)
-- [Как параметр метода](#171-как-параметр-метода)
-- [Как свойство класса](#172-как-свойство-класса)
-- [Как обёртка коллекции](#173-как-обёртка-коллекции)
-18. [Optional не должен равняться null](#18-optional-не-должен-равняться-null)
-19. [Примитивы и Optional](#19-примитивы-и-optional)
+</details>
 
----
 
 ## 1. Цель класса Optional
+
+<details> <summary>Ответ</summary>
 
 Класс `Optional` в Java предназначен для представления опциональных значений вместо использования `null`-ссылок. Это контейнер, который может содержать объект типа `T` или быть пустым, помогая избежать `NullPointerException` и улучшая читаемость кода.
 
@@ -38,11 +12,14 @@
 - `Optional` — это обёртка, которая явно указывает на возможность отсутствия значения.
 - Способствует функциональному программированию и явной обработке случаев, когда значение может быть `null`.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 2. Как создать Optional?
+
+<details> <summary>Ответ</summary>
 
 Существует три основных способа создания объекта `Optional`:
 
@@ -71,11 +48,14 @@ String name = null;
 Optional<String> opt = Optional.ofNullable(name); // Возвращает пустой Optional
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 3. Как проверить наличие значения в Optional?
+
+<details> <summary>Ответ</summary>
 
 ### 3.1. Метод isPresent()
 
@@ -95,11 +75,14 @@ Optional<String> opt = Optional.of("Baeldung");
 System.out.println(opt.isEmpty()); // false
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 4. Что делает ifPresent()?
+
+<details> <summary>Ответ</summary>
 
 Метод `ifPresent()` выполняет действие над значением, если оно присутствует, избегая явной проверки на `null`.
 
@@ -121,11 +104,14 @@ opt.ifPresent(name -> System.out.println(name.length())); // 8
 - Заставляет явно обрабатывать случаи отсутствия значения.
 - Поддерживает функциональный стиль.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 5. Что делает ifPresentOrElse()?
+
+<details> <summary>Ответ</summary>
 
 Метод `ifPresentOrElse()` выполняет одно действие, если значение присутствует, и другое, если `Optional` пустой. Принимает два параметра: `Consumer` для значения и `Runnable` для пустого случая.
 
@@ -138,11 +124,14 @@ personRepository.findById(id)
     );
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 6. Что делает orElse()?
+
+<details> <summary>Ответ</summary>
 
 Метод `orElse()` возвращает значение из `Optional`, если оно присутствует, или значение по умолчанию, если `Optional` пустой.
 
@@ -156,11 +145,14 @@ public void whenOrElseWorks_thenCorrect() {
 }
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 7. Что делает orElseGet()?
+
+<details> <summary>Ответ</summary>
 
 Метод `orElseGet()` возвращает значение из `Optional` или вызывает `Supplier`, если `Optional` пустой.
 
@@ -174,11 +166,14 @@ public void whenOrElseGetWorks_thenCorrect() {
 }
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 8. Разница между orElse() и orElseGet()
+
+<details> <summary>Ответ</summary>
 
 Хотя `orElse()` и `orElseGet()` кажутся похожими, их различие существенно влияет на производительность.
 
@@ -218,11 +213,14 @@ Getting Default Value...
 - `orElseGet()` эффективнее, если значение по умолчанию дорого вычислять (например, запрос к БД).
 - Используйте `orElse()` для простых констант.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 9. Исключения с помощью orElseThrow()
+
+<details> <summary>Ответ</summary>
 
 Метод `orElseThrow()` выбрасывает исключение, если `Optional` пустой, вместо возврата значения по умолчанию.
 
@@ -238,11 +236,14 @@ String nullName = null;
 String name = Optional.ofNullable(nullName).orElseThrow(); // NoSuchElementException
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 10. Возвращение значения с помощью get()
+
+<details> <summary>Ответ</summary>
 
 Метод `get()` возвращает значение из `Optional`, но выбрасывает `NoSuchElementException`, если `Optional` пустой.
 
@@ -266,11 +267,14 @@ public void givenOptionalWithNull_whenGetThrowsException_thenCorrect() {
 - Использование `get()` противоречит цели `Optional`, так как не поощряет явную обработку пустого случая.
 - Рекомендуется использовать `orElse()`, `orElseGet()` или `orElseThrow()`.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 11. Как работает метод filter() для Optional?
+
+<details> <summary>Ответ</summary>
 
 Метод `filter()` возвращает `Optional` с текущим значением, если оно удовлетворяет условию (`Predicate`), или пустой `Optional`, если условие не выполнено или `Optional` пустой.
 
@@ -283,11 +287,14 @@ personRepository.findById(id)
 **Использование**:
 - Подходит для проверки условий на значение внутри `Optional`.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 12. Как работает метод map() для Optional?
+
+<details> <summary>Ответ</summary>
 
 Метод `map()` применяет функцию (`Function`) к значению в `Optional` и возвращает новый `Optional` с результатом. Если `Optional` пустой, возвращается пустой `Optional`.
 
@@ -300,11 +307,14 @@ personRepository.findById(id)
 **Использование**:
 - Для преобразования значения внутри `Optional` в другой тип.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 13. Как работает метод flatMap() для Optional?
+
+<details> <summary>Ответ</summary>
 
 Метод `flatMap()` применяется, если функция (`Function`) возвращает `Optional`. Он "распаковывает" результат, избегая вложенных `Optional<Optional<T>>`.
 
@@ -324,11 +334,14 @@ Optional<Optional<String>> nested = personRepository.findById(1L)
 **Использование**:
 - Для работы с методами, возвращающими `Optional`, без вложенности.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 14. Метод or()
+
+<details> <summary>Ответ</summary>
 
 С Java 11 метод `or()` возвращает текущий `Optional`, если он не пустой, или новый `Optional`, созданный `Supplier`.
 
@@ -342,11 +355,14 @@ personRepository.findById(id)
 - Не изменяет существующий `Optional`, а возвращает новый.
 - Полезно для предоставления альтернативного `Optional`.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 15. Комбинирование методов в Optional
+
+<details> <summary>Ответ</summary>
 
 Методы `Optional` возвращают новый `Optional`, что позволяет создавать цепочки, подобные Stream API.
 
@@ -362,11 +378,14 @@ final DayOfWeek dayWeek = Optional.of(now)
 **Использование**:
 - Комбинируйте `map()`, `filter()`, `orElse()` и другие методы для обработки данных.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 16. Когда стоит использовать Optional?
+
+<details> <summary>Ответ</summary>
 
 Согласно Javadoc, `Optional` предназначен для:
 - Использования в качестве возвращаемого типа метода, когда результат может отсутствовать.
@@ -379,11 +398,14 @@ Optional<User> findUserById(Long id) {
 }
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 17. Как НЕ стоит использовать Optional?
+
+<details> <summary>Ответ</summary>
 
 ### 17.1. Как параметр метода
 
@@ -419,11 +441,14 @@ Optional<List<String>> optionalList = Optional.ofNullable(list);
 **Решение**:
 - Используйте `Collections.emptyList()`, `Collections.emptySet()` и т.д.
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 18. Optional не должен равняться null
+
+<details> <summary>Ответ</summary>
 
 Присваивание `null` вместо `Optional` нарушает его цель. Всегда используйте `Optional.empty()` для пустого значения.
 
@@ -437,11 +462,14 @@ Optional<String> opt = null;
 Optional<String> opt = Optional.empty();
 ```
 
-[Назад к оглавлению](#оглавление)
+
+</details>
 
 ---
 
 ## 19. Примитивы и Optional
+
+<details> <summary>Ответ</summary>
 
 Для работы с примитивами существуют `OptionalInt`, `OptionalLong`, `OptionalDouble`. Они избегают автобоксинга, но имеют ограниченный функционал (нет `map()`, `filter()`).
 
@@ -454,5 +482,3 @@ int value = opt.orElse(0);
 **Особенности**:
 - Используются редко из-за ограниченной функциональности.
 - Доступны методы: `getAsInt()`, `orElse()`, `orElseGet()`, `orElseThrow()`, `ifPresent()`, `isPresent()`.
-
-[Назад к оглавлению](#оглавление)
