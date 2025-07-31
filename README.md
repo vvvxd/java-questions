@@ -1,3 +1,17 @@
 Курс для повторения материала.
 
-[https://quizlet.com/class/23042872/](https://quizlet.com/join/ha6Hjtypc)https://quizlet.com/join/ha6Hjtypc
+- **KStream**:
+    - Поток событий, каждая запись — независимое событие.
+    - Используется для обработки логов, кликов, транзакций.
+    - Операции: `map`, `filter`, `join`, `groupBy`.
+- **KTable**:
+    - Таблица, отражающая текущее состояние по ключу (последняя запись).
+    - Используется для хранения состояний (балансы, профили).
+    - Хранит данные в changelog-топике.
+- **Разница**:
+    - KStream: поток событий, не хранит состояние.
+    - KTable: таблица состояния, хранит последнее значение.
+- Пример:
+  ```java
+  KStream<String, String> logs = builder.stream("logs-topic");
+  logs.filter((key, value) -> value.contains("ERROR")).to("error-logs-topic");
