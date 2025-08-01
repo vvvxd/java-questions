@@ -1,9 +1,3 @@
-
-
-</details>
-
-## Сервлеты
-
 ### 1. Что такое сервлет и какова его роль в веб-приложении?
 
 <details> <summary>Ответ</summary>
@@ -186,105 +180,6 @@ public class MyFilter implements Filter {
 
 </details>
 
----
-
-### 10. Как сервлеты обрабатывают ошибки?
-
-<details> <summary>Ответ</summary>
-
-Ошибки обрабатываются через:
-- **web.xml**:
-  ```xml
-  <error-page>
-      <error-code>404</error-code>
-      <location>/error404.jsp</location>
-  </error-page>
-  ```
-- `try-catch` в методах сервлета.
-
-**Нюанс**: Используйте `response.sendError` для HTTP-ошибок.
-
-</details>
-
----
-
-### 11. Как сервлеты взаимодействуют с JSP?
-
-<details> <summary>Ответ</summary>
-
-Сервлеты передают данные в JSP через `request.setAttribute` и `RequestDispatcher`.
-
-**Пример**:
-```java
-request.setAttribute("data", "value");
-request.getRequestDispatcher("page.jsp").forward(req, res);
-```
-
-**Нюанс**: JSP компилируется в сервлеты, но лучше для UI, а сервлеты — для логики.
-
-</details>
-
----
-
-### 12. Как обеспечить потокобезопасность сервлетов?
-
-<details> <summary>Ответ</summary>
-
-- Избегайте изменяемых полей.
-- Используйте локальные переменные.
-- Синхронизируйте общие ресурсы.
-
-**Нюанс**: `SingleThreadModel` устарел.
-
-</details>
-
----
-
-### 13. Как сервлеты обрабатывают загрузку файлов?
-
-<details> <summary>Ответ</summary>
-
-Используется `@MultipartConfig`.
-
-**Пример**:
-```java
-@WebServlet("/upload")
-@MultipartConfig
-public class UploadServlet extends HttpServlet {
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
-        Part filePart = request.getPart("file");
-    }
-}
-```
-
-**Нюанс**: Ограничивайте размер файлов через `maxFileSize`.
-
-</details>
-
----
-
-### 14. Как сервлеты поддерживают RESTful API?
-
-<details> <summary>Ответ</summary>
-
-Сервлеты возвращают JSON/XML для API.
-
-**Пример**:
-```java
-@WebServlet("/api/user")
-public class UserApiServlet extends HttpServlet {
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-        response.setContentType("application/json");
-        response.getWriter().print("{\"name\": \"John\"}");
-    }
-}
-```
-
-**Нюанс**: Используйте Jackson для сериализации.
-
-</details>
-
----
 
 ### 15. Как сервлеты работают с WebSocket?
 
@@ -307,39 +202,6 @@ public class MyWebSocket {
 
 </details>
 
----
-
-### 16. Как оптимизировать производительность сервлетов?
-
-<details> <summary>Ответ</summary>
-
-- Кэшируйте статические ресурсы.
-- Используйте асинхронную обработку.
-- Применяйте пулы соединений (HikariCP).
-- Включите GZIP.
-
-**Нюанс**: Чрезмерное кэширование может устаревать данные.
-
-</details>
-
----
-
-### 17. Как обеспечить безопасность сервлетов?
-
-<details> <summary>Ответ</summary>
-
-- Аутентификация через фильтры.
-- HTTPS с SSL/TLS.
-- CSRF-токены.
-- Экранирование ввода.
-
-**Нюанс**: Добавляйте заголовок `X-Content-Type-Options: nosniff`.
-
----
-
-</details>
-
-## Контейнеры сервлетов
 
 ### 18. Что такое контейнер сервлетов и какова его основная функция?
 

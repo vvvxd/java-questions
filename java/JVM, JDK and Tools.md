@@ -400,3 +400,5 @@ JVM получает от launcher-а имя класса или модуль и
 - Утилиты VisualVM, MissionControl, jstat, jmap - для анализа состояния JVM в моменте.
 - Включение GC-логов - -XX:PrintGCDetails и других. Их можно анализировать с помощью GCLogAnalyzer или GCViewer.
 - Включение создания дампа памяти при ошибке OutOfMemoryError: xxx - XX:HeapDumpOnOutOfMemoryError и -XX:HeapDumpPath=<file_name>. Анализ дампа можно производить с помощью Memory Analyzer (MAT).
+
+</details>
