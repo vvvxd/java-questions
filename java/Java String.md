@@ -13,12 +13,6 @@
 - **Пул строк**: JVM хранит уникальные строки в `String Pool` для оптимизации памяти.
 - **Поддержка Unicode**: Поддерживает символы Unicode, включая суррогатные пары.
 
-**Пример**:
-```java
-String str = "Hello";
-str = str + " World"; // Создается новый объект
-System.out.println(str); // Hello World
-```
 
 **Внутреннее устройство**:
 - С Java 9 (JEP 254) строки хранятся в `byte[]` вместо `char[]` с кодировкой LATIN1 или UTF16.
@@ -35,11 +29,6 @@ System.out.println(str); // Hello World
 
 **Описание**: Неизменяемость означает, что содержимое `String` не может быть изменено после создания, что влияет на производительность и безопасность.
 
-**Почему строки неизменяемы**:
-- **Безопасность**: Предотвращает случайные изменения критических данных (например, ключей `HashMap`).
-- **Потокобезопасность**: Безопасны для многопоточного доступа.
-- **Оптимизация памяти**: Позволяет использовать пул строк.
-
 **Внутреннее устройство**:
 - Поле `value` (`byte[]`) помечено как `final`.
 - Методы, такие как `substring` или `replace`, создают новый объект `String`.
@@ -51,10 +40,6 @@ String str = "Hello";
 str.substring(1); // Создает "ello"
 System.out.println(str); // Hello (оригинал не изменился)
 ```
-
-**Оптимизации**:
-- JIT-компилятор инлайн-вызовы методов `String`.
-- Пул строк минимизирует дублирование.
 
 </details>
 
@@ -168,10 +153,6 @@ str.lines().forEach(System.out::println);
 - `strip()`: Использует `Character.isWhitespace(int)`.
 - `lines()`: Использует `Splitter.SplittingIterator`.
 
-**Оптимизации**:
-- Intrinsic-функции для `equals`, `length`, `charAt`.
-- JIT-компилятор инлайн-вызовы.
-
 </details>
 
 ---
@@ -246,9 +227,6 @@ try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("string.s
 - Десериализация восстанавливает `byte[]` и `coder`.
 - Пул строк может интернировать строки при вызове `intern()`.
 
-**Оптимизации**:
-- Compact Strings уменьшают размер данных.
-- Intrinsic-функции ускоряют сериализацию.
 
 </details>
 
@@ -317,25 +295,6 @@ String template = STR."Hello, \{name}!"; // Hello, Alice!
 
 ---
 
-## 10. Какие проблемы и ограничения связаны с классом `String`?
-
-<details> <summary>Ответ</summary>
-
-**Описание**: Ограничения `String`:
-- **Неизменяемость**: Затраты на создание новых объектов.
-- **Пул строк**: Перегрузка `StringTable` при чрезмерного `intern()`.
-- **Unicode**: `length()` считает кодовые единицы, не символы.
-- **Память**: UTF16 для Unicode-строк больше.
-
-**Решения**:
-- `StringBuilder` для конкатенации.
-- Ограничьте `intern()`.
-- Используйте `codePoints()` для Unicode.
-
-</details>
-
----
-
 ## 11. Можно ли наследовать строковой класс?
 
 <details> <summary>Ответ</summary>
@@ -381,29 +340,6 @@ class EvilString extends String { // Ошибка компиляции
 | **Память**           | Много объектов         | Эффективен             | Эффективен             |
 | **Использование**    | Константы              | Многопоточность        | Однопоточность         |
 
-**Примеры**:
-- **String**:
-  ```java
-  String str = "Hello";
-  str = str + " World"; // Новый объект
-  ```
-- **StringBuffer**:
-```java
-  StringBuffer sb = new StringBuffer("Hello");
-  sb.append(" World"); // Модификация
-  ```
-- **StringBuilder**:
-```java
-  StringBuilder sb = new StringBuilder("Hello");
-  sb.append(" World"); // Быстрая
-модификация
-  ```
-
-**Рекомендации**:
-- `String`: Для констант.
-- `StringBuffer`: Для многопоточности.
-- `StringBuilder`: Для производительности в однопоточных приложениях.
-
 </details>
 
 ---
@@ -446,7 +382,6 @@ String s1 = "Java";
 String s2 = "Java"; // Один объект в пуле
 ```
 
-[Вероятно к оглавлению](#оглавление)
 
 </details>
 
